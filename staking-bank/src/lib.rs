@@ -258,7 +258,7 @@ fn number_of_validators<S: HasStateApi>(
     name = "TOTAL_SUPPLY",
     return_value = "U256Wrapper"
 )]
-fn total_supply<S: HasStateApi>(
+fn total_supply_1<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<U256Wrapper> {
@@ -316,6 +316,194 @@ fn validators<S: HasStateApi>(
     }
 }
 
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "balances",
+    parameter = "AccountAddress",
+    return_value = "U256Wrapper"
+)]
+fn balances<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<U256Wrapper> {
+    let _account: AccountAddress = ctx.parameter_cursor().get()?;
+
+    if _is_validator(_account) {
+        Ok(host.state().one)
+    } else {
+        Ok(U256Wrapper(U256::from_dec_str("0").unwrap()))
+    }
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "verifyValidators",
+    parameter = "Vec<AccountAddress>",
+    return_value = "bool"
+)]
+fn verify_validators<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<bool> {
+    let _accounts: Vec<AccountAddress> = ctx.parameter_cursor().get()?;
+
+    for _validator in _accounts {
+        if _is_validator(_validator) {
+            return Ok(false);
+        }
+    }
+
+    Ok(true)
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "getNumberOfValidators",
+    return_value = "U256Wrapper"
+)]
+fn get_number_of_validators<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<U256Wrapper> {
+    Ok(host.state().number_of_validators)
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "getAddresses",
+    return_value = "Vec<AccountAddress>"
+)]
+fn get_addresses<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<Vec<AccountAddress>> {
+    Ok(_addresses())
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "getBalances",
+    return_value = "Vec<U256Wrapper>"
+)]
+fn get_balances<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<Vec<U256Wrapper>> {
+    let one = host.state().one;
+    let number_of_validators = host.state().number_of_validators;
+
+    Ok(vec![one, number_of_validators])
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "addresses",
+    parameter = "u8",
+    return_value = "AccountAddress"
+)]
+fn addresses<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<AccountAddress> {
+    let index: u8 = ctx.parameter_cursor().get()?;
+    Ok(_addresses()[<u8 as Into<usize>>::into(index)])
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "balanceOf",
+    parameter = "AccountAddress",
+    return_value = "U256Wrapper"
+)]
+fn balance_of<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<U256Wrapper> {
+    let _account: AccountAddress = ctx.parameter_cursor().get()?;
+
+    if _is_validator(_account) {
+        Ok(host.state().one)
+    } else {
+        Ok(U256Wrapper(U256::from_dec_str("0").unwrap()))
+    }
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "totalSupply",
+    return_value = "U256Wrapper"
+)]
+fn total_supply_2<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<U256Wrapper> {
+    Ok(host.state().total_supply)
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "staking_bank",
+    name = "getName",
+    return_value = "HashSha2256",
+    crypto_primitives
+)]
+fn get_name<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State, StateApiType = S>,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> ReceiveResult<HashSha2256> {
+    let key_hash = crypto_primitives.hash_sha2_256("StakingBank".as_bytes()).0;
+
+    Ok(HashSha2256(key_hash))
+}
+
+/// View function that returns the balance of an validator
+#[receive(contract = "staking_bank", name = "register")]
+fn register<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<()> {
+    // there are no requirements atm
+    Ok(())
+}
+
+/// View function that returns the balance of an validator
+#[receive(contract = "staking_bank", name = "unregister")]
+fn unregister<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<()> {
+    // there are no requirements atm
+    Ok(())
+}
+
+/// View function that returns the balance of an validator
+#[receive(contract = "staking_bank", name = "_addresses", return_value="Vec<AccountAddress>")]
+fn addresses_external<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<Vec<AccountAddress>> {
+    Ok(_addresses())
+}
+
+/// View function that returns the balance of an validator
+#[receive(contract = "staking_bank", name = "_isValidator", parameter="AccountAddress", return_value="bool")]
+fn is_validator<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State, StateApiType = S>,
+) -> ReceiveResult<bool> {
+  let _account: AccountAddress = ctx.parameter_cursor().get()?;
+
+    Ok(_is_validator(_account))
+}
 
 // /// The parameter type for the contract function `permit`.
 // /// Takes a signature, the signer, and the message that was signed.
