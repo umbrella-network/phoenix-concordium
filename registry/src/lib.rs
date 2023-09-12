@@ -278,6 +278,29 @@ fn require_and_get_address<S: HasStateApi>(
     Ok(contract_address)
 }
 
+/// Equivalent to solidity's getter function which is automatically created from the public storage variable `registry`.
+#[receive(
+    contract = "registry",
+    name = "registry",
+    parameter = "HashSha2256",
+    return_value = "ContractAddress"
+)]
+fn registry<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<ContractAddress> {
+    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+
+    let contract_address = host
+        .state()
+        .registry
+        .get(&key_hash)
+        .map(|s| *s)
+        .ok_or(CustomContractError::NameNotRegistered)?;
+
+    Ok(contract_address)
+}
+
 /// View function that returns contract_address from key hash.
 #[receive(
     contract = "registry",
