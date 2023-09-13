@@ -151,16 +151,30 @@ pub struct ImportContractsParam {
     parameter = "ImportContractsParam",
     error = "CustomContractError",
     enable_logger,
-    mutable
+    mutable,
+    crypto_primitives
 )]
 fn import_contracts<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
     logger: &mut impl HasLogger,
+    crypto_primitives: &impl HasCryptoPrimitives,
 ) -> Result<(), CustomContractError> {
-    ensure_eq!(
-        ctx.sender(),
-        host.state().owner,
+    // Calculate the key hash.
+    let key_hash = crypto_primitives
+        .hash_sha2_256("UmbrellaFeeds".as_bytes())
+        .0;
+
+    let umbrella_feeds_contract = host
+        .state()
+        .registry
+        .get(&HashSha2256(key_hash))
+        .map(|s| *s)
+        .ok_or(CustomContractError::NameNotRegistered)?;
+
+    // Only the owner or the owner via the `UmbrellaFeeds` contract can upgrade the contract addresses
+    ensure!(
+        ctx.sender() == host.state().owner || ctx.sender() == concordium_std::Address::Contract(umbrella_feeds_contract),
         CustomContractError::UnauthorizedAccount
     );
 
@@ -339,7 +353,7 @@ fn get_address_by_string<S: HasStateApi>(
 ) -> ReceiveResult<ContractAddress> {
     let key: String = ctx.parameter_cursor().get()?;
 
-    // Calculate the message hash.
+    // Calculate the key hash.
     let key_hash = crypto_primitives.hash_sha2_256(key.as_bytes()).0;
 
     let contract_address = host
@@ -373,77 +387,12 @@ fn string_to_bytes32<S: HasStateApi>(
     Ok(HashSha2256(key_hash))
 }
 
-// #[concordium_cfg_test]
-// mod tests {
-//     use super::*;
-//     use test_infrastructure::*;
+/// View function that hash from a key string.
+#[receive(contract = "registry", name = "owner", return_value = "Address")]
+fn owner<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<Address> {
+    Ok(host.state().owner)
+}
 
-//     type ContractResult<A> = Result<A, Error>;
-
-//     #[concordium_test]
-//     /// Test that initializing the contract succeeds with some state.
-//     fn test_init() {
-//         let ctx = TestInitContext::empty();
-
-//         let mut state_builder = TestStateBuilder::new();
-
-//         let state_result = init(&ctx, &mut state_builder);
-//         state_result.expect_report("Contract initialization results in error");
-//     }
-
-//     #[concordium_test]
-//     /// Test that invoking the `receive` endpoint with the `false` parameter
-//     /// succeeds in updating the contract.
-//     fn test_throw_no_error() {
-//         let ctx = TestInitContext::empty();
-
-//         let mut state_builder = TestStateBuilder::new();
-
-//         // Initializing state
-//         let initial_state = init(&ctx, &mut state_builder).expect("Initialization should pass");
-
-//         let mut ctx = TestReceiveContext::empty();
-
-//         let throw_error = false;
-//         let parameter_bytes = to_bytes(&throw_error);
-//         ctx.set_parameter(&parameter_bytes);
-
-//         let mut host = TestHost::new(initial_state, state_builder);
-
-//         // Call the contract function.
-//         let result: ContractResult<()> = receive(&ctx, &mut host);
-
-//         // Check the result.
-//         claim!(result.is_ok(), "Results in rejection");
-//     }
-
-//     #[concordium_test]
-//     /// Test that invoking the `receive` endpoint with the `true` parameter
-//     /// results in the `YourError` being thrown.
-//     fn test_throw_error() {
-//         let ctx = TestInitContext::empty();
-
-//         let mut state_builder = TestStateBuilder::new();
-
-//         // Initializing state
-//         let initial_state = init(&ctx, &mut state_builder).expect("Initialization should pass");
-
-//         let mut ctx = TestReceiveContext::empty();
-
-//         let throw_error = true;
-//         let parameter_bytes = to_bytes(&throw_error);
-//         ctx.set_parameter(&parameter_bytes);
-
-//         let mut host = TestHost::new(initial_state, state_builder);
-
-//         // Call the contract function.
-//         let error: ContractResult<()> = receive(&ctx, &mut host);
-
-//         // Check the result.
-//         claim_eq!(
-//             error,
-//             Err(Error::YourError),
-//             "Function should throw an error."
-//         );
-//     }
-// }
