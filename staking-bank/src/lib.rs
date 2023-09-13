@@ -135,26 +135,6 @@ impl<T> From<CallContractError<T>> for CustomContractError {
     }
 }
 
-/// Tagged events to be serialized for the event log.
-#[derive(Debug, Serial, SchemaType)]
-#[concordium(repr(u8))]
-enum Event {
-    /// The event tracks the nonce used by the signer of the `PermitMessage`
-    /// whenever the `permit` function is invoked.
-    #[concordium(tag = 0)]
-    LogRegistered(LogRegisteredEvent),
-}
-
-/// The NonceEvent is logged when the `permit` function is invoked. The event
-/// tracks the nonce used by the signer of the `PermitMessage`.
-#[derive(Debug, Serialize, SchemaType, PartialEq, Eq)]
-pub struct LogRegisteredEvent {
-    /// Account that signed the `PermitMessage`.
-    pub destination: ContractAddress,
-    /// The nonce that was used in the `PermitMessage`.
-    pub name: HashSha2256,
-}
-
 /// Get _isValidator
 fn _is_validator(_validator: AccountAddress) -> bool {
     _validator == VALIDATOR_0
@@ -206,8 +186,7 @@ pub struct InitContractsParam {
 /// Init function that creates a new smart contract.
 #[init(
     contract = "staking_bank",
-    parameter = "InitContractsParam",
-    event = "Event"
+    parameter = "InitContractsParam"
 )]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
