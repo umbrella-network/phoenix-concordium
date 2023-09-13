@@ -15,7 +15,11 @@ wee_alloc = ["concordium-std/wee_alloc"]
 u256_amount = []
 
 [dev-dependencies]
-concordium-smart-contract-testing = "2.0"
+concordium-smart-contract-testing = "3.0"
+
+[dependencies.registry]
+path = "../registry/"
+
 
 #`concordium-smart-contract-testing` uses the below libraries as well. We overwrite them with the ones used 
 #in this repository so we can test the newest version of the libraries with the Ci pipelines.

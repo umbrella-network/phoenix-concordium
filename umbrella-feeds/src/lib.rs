@@ -3,6 +3,7 @@
 //! # Umbrella feeds
 use concordium_std::*;
 use core::fmt::Debug;
+use registry::ImportContractsParam;
 
 #[cfg(feature = "u256_amount")]
 use primitive_types::U256;
@@ -141,9 +142,8 @@ fn init<S: HasStateApi>(
 ) -> InitResult<State<S>> {
     let param: InitContractsParam = ctx.parameter_cursor().get()?;
 
-    ensure_eq!(
-        param.required_signatures,
-        0,
+    ensure!(
+        param.required_signatures != 0,
         CustomContractError::InvalidRequiredSignatures.into()
     );
 
@@ -217,20 +217,22 @@ fn contract_upgrade<S: HasStateApi>(
     //     revert ContractNotInitialised();
     // }
 
-    // Check that 
+    // Check that
     ensure_eq!(
         state
             .deployed_at
-            .checked_add(Duration::from_days(3)).ok_or(CustomContractError::OverFlow)
-    ,
-       Ok(ctx.metadata().block_time()),
+            .checked_add(Duration::from_days(3))
+            .ok_or(CustomContractError::OverFlow),
+        Ok(ctx.metadata().block_time()),
         CustomContractError::ContractNotInitialised
     );
 
     // Parse the parameter.
     let param: UpgradeParams = ctx.parameter_cursor().get()?;
 
-    let parameter = vec![ctx.self_address()];
+    let parameter = ImportContractsParam {
+        entries: vec![ctx.self_address()],
+    };
 
     // Update contract in registry
     host.invoke_contract_raw(
@@ -267,4 +269,23 @@ fn destroy<S: HasStateApi>(
     _host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> Result<(), CustomContractError> {
     bail!(CustomContractError::NotSupportedUseUpgradeFunctionInstead);
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getName",
+    return_value = "HashSha2256",
+    crypto_primitives
+)]
+fn get_name<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State<S>, StateApiType = S>,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> ReceiveResult<HashSha2256> {
+    let key_hash = crypto_primitives
+        .hash_sha2_256("UmbrellaFeeds".as_bytes())
+        .0;
+
+    Ok(HashSha2256(key_hash))
 }
