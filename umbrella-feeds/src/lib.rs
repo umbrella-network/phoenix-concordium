@@ -19,7 +19,7 @@ const CHAIN_ID: u16 = 0;
 #[repr(transparent)]
 pub struct U256Wrapper(pub U256);
 
-#[derive(Serialize, SchemaType, Copy, Clone)]
+#[derive(Serialize, SchemaType, Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PriceData {
     /// @dev this is placeholder, that can be used for some additional data
     /// atm of creating this smart contract, it is only used as marker for removed data (when == type(uint8).max)
@@ -50,34 +50,35 @@ struct State<S> {
 enum CustomContractError {
     /// Failed parsing the parameter.
     #[from(ParseError)]
-    ParseParams,
+    ParseParams, // -1
     /// Failed logging: Log is full.
-    LogFull,
+    LogFull, // -2
     /// Failed logging: Log is malformed.
-    LogMalformed,
+    LogMalformed, // -3
     /// Failed to invoke a contract.
-    InvokeContractError,
-    InvalidRequiredSignatures,
-    ValidatorDoesNotExist,
-    ValidatorsCountMisMatch,
-    NotValidator,
-    OverFlow,
-    NotSupportedUseUpgradeFunctionInstead,
-    ContractNotInitialised,
-    ArraysDataDoNotMatch,
-    ChainIdMismatch,
-    OldData,
-    WrongContract,
-    Expired,
-    Unauthorized,
+    InvokeContractError, // -4
+    InvalidRequiredSignatures,             // -5
+    ValidatorDoesNotExist,                 // -6
+    ValidatorsCountMisMatch,               // -7
+    NotValidator,                          // -8
+    OverFlow,                              // -9
+    NotSupportedUseUpgradeFunctionInstead, // -10
+    ContractNotInitialised,                // -11
+    ArraysDataDoNotMatch,                  // -12
+    ChainIdMismatch,                       // -13
+    OldData,                               // -14
+    WrongContract,                         // -15
+    Expired,                               // -16
+    FeedNotExist,                          // -17
+    Unauthorized,                          // -18
     /// Upgrade failed because the new module does not exist.
-    FailedUpgradeMissingModule,
+    FailedUpgradeMissingModule, // -19
     /// Upgrade failed because the new module does not contain a contract with a
     /// matching name.
-    FailedUpgradeMissingContract,
+    FailedUpgradeMissingContract, // -20
     /// Upgrade failed because the smart contract version of the module is not
     /// supported.
-    FailedUpgradeUnsupportedModuleVersion,
+    FailedUpgradeUnsupportedModuleVersion, // -21
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -246,7 +247,7 @@ fn contract_upgrade<S: HasStateApi>(
     // Update contract in registry
     host.invoke_contract_raw(
         &state.registry,
-        Parameter::from(to_bytes(&parameter).as_slice().try_into().unwrap()),
+        to_bytes(&parameter).as_slice().try_into().unwrap(),
         EntrypointName::new_unchecked("importContracts"),
         Amount::zero(),
     )?;
@@ -365,9 +366,9 @@ pub struct UpdateParams {
 #[derive(Serialize)]
 pub struct UpdateParamsPartial {
     /// Signature/s. The CIS3 standard supports multi-sig accounts.
-    signature: Vec<AccountSignatures>,
+    pub signature: Vec<AccountSignatures>,
     /// Account that created the above signature.
-    signer: AccountAddress,
+    pub signer: AccountAddress,
 }
 
 #[receive(
@@ -403,19 +404,20 @@ fn update<S: HasStateApi>(
     ensure_eq!(
         message.contract_address,
         ctx.self_address(),
-        CustomContractError::WrongContract.into()
+        CustomContractError::WrongContract
     );
 
     // Check signature is not expired.
     ensure!(
         message.timestamp > ctx.metadata().slot_time(),
-        CustomContractError::Expired.into()
+        CustomContractError::Expired
     );
 
     // Check signature has correct chain_id.
-    ensure!(
-        message.chain_id > CHAIN_ID,
-        CustomContractError::ChainIdMismatch.into()
+    ensure_eq!(
+        message.chain_id,
+        CHAIN_ID,
+        CustomContractError::ChainIdMismatch
     );
 
     let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
@@ -433,7 +435,7 @@ fn update<S: HasStateApi>(
         if let Some(old_price_data) = old_price_data {
             ensure!(
                 old_price_data.timestamp < price_data.timestamp,
-                CustomContractError::OldData.into()
+                CustomContractError::OldData
             );
         }
 
@@ -460,4 +462,27 @@ fn get_name<S: HasStateApi>(
         .0;
 
     Ok(HashSha2256(key_hash))
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getPriceData",
+    parameter = "HashSha2256",
+    return_value = "PriceData"
+)]
+fn get_price_data<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<PriceData> {
+    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+
+    let price_ata = host
+        .state()
+        .prices
+        .get(&key_hash)
+        .map(|s| *s)
+        .ok_or(CustomContractError::FeedNotExist)?;
+
+    Ok(price_ata)
 }

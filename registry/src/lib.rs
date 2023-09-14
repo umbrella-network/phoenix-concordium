@@ -394,7 +394,7 @@ fn string_to_bytes32<S: HasStateApi>(
 /// View function that hash from a key string.
 #[receive(contract = "registry", name = "owner", return_value = "Address")]
 fn owner<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
+    _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<Address> {
     Ok(host.state().owner)
