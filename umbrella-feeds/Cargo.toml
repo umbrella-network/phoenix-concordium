@@ -16,6 +16,7 @@ u256_amount = []
 
 [dev-dependencies]
 concordium-smart-contract-testing = "3.0"
+ed25519-dalek = "1.0.1"
 
 [dependencies.registry]
 path = "../registry/"

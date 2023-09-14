@@ -1,6 +1,7 @@
 use std::collections::BTreeMap;
 
 use concordium_smart_contract_testing::*;
+use concordium_smart_contract_testing::{AccountAccessStructure, *};
 use concordium_std::{
     AccountPublicKeys, AccountSignatures, CredentialSignatures, PublicKey, SignatureEd25519,
     Timestamp,
@@ -12,9 +13,59 @@ use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams, Upgra
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
 
+const SIGNATURE: SignatureEd25519 = SignatureEd25519([
+    177, 27, 240, 37, 5, 20, 109, 227, 126, 203, 176, 159, 238, 112, 254, 237, 1, 25, 131, 179, 65,
+    90, 52, 15, 204, 85, 2, 11, 126, 105, 235, 8, 87, 107, 162, 148, 141, 27, 196, 228, 114, 69,
+    128, 157, 202, 30, 194, 244, 13, 189, 89, 79, 220, 244, 14, 43, 83, 137, 25, 138, 6, 178, 238,
+    12,
+]);
+
+const KEY_HASH: HashSha2256 = HashSha2256([
+    120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
+    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
+]);
+
+// Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
+const PUBLIC_KEY: [u8; 32] = [
+    120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
+    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
+];
+
+const ACC_ADDR_OTHER: AccountAddress = AccountAddress([1u8; 32]);
+
 fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSuccess) {
     let mut chain = Chain::new();
 
+    let balance = AccountBalance {
+        total: ACC_INITIAL_BALANCE,
+        staked: Amount::zero(),
+        locked: Amount::zero(),
+    };
+
+    let mut inner_key_map: BTreeMap<KeyIndex, VerifyKey> = BTreeMap::new();
+
+    inner_key_map.insert(
+        KeyIndex(0u8),
+        VerifyKey::Ed25519VerifyKey(
+            ed25519_dalek::PublicKey::from_bytes(&PUBLIC_KEY)
+                .expect("Should be able to create public key"),
+        ),
+    );
+
+    let credential_public_keys = CredentialPublicKeys {
+        keys: inner_key_map,
+        threshold: SignatureThreshold::ONE,
+    };
+
+    let mut key_map: BTreeMap<CredentialIndex, CredentialPublicKeys> = BTreeMap::new();
+    key_map.insert(CredentialIndex { index: 0u8 }, credential_public_keys);
+
+    let keys = AccountAccessStructure {
+        keys: key_map,
+        threshold: AccountThreshold::ONE,
+    };
+
+    chain.create_account(Account::new_with_keys(ACC_ADDR_OTHER, balance, keys));
     chain.create_account(Account::new(ACC_ADDR_OWNER, ACC_INITIAL_BALANCE));
 
     // Deploying registry contract
@@ -96,20 +147,6 @@ fn test_init() {
 fn test_update_operator() {
     let (mut chain, initialization, initalization_registry) = setup_chain_and_contract();
 
-    const SIGNATURE: SignatureEd25519 = SignatureEd25519([
-        46, 96, 133, 143, 232, 24, 149, 54, 217, 245, 162, 135, 64, 125, 32, 61, 209, 147, 240,
-        151, 19, 244, 137, 244, 91, 59, 120, 202, 39, 201, 82, 39, 64, 210, 250, 183, 187, 27, 147,
-        50, 31, 88, 78, 79, 78, 135, 192, 72, 38, 234, 90, 226, 89, 75, 124, 86, 1, 190, 196, 195,
-        248, 19, 181, 11,
-    ]);
-
-    const KEY_HASH: HashSha2256 = HashSha2256([
-        120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208,
-        195, 253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
-    ]);
-
-    const ACC_ADDR_OTHER: AccountAddress = AccountAddress([1u8; 32]);
-
     let mut inner_signature_map = BTreeMap::new();
     inner_signature_map.insert(0u8, concordium_std::Signature::Ed25519(SIGNATURE));
 
@@ -129,7 +166,7 @@ fn test_update_operator() {
     };
 
     let update_param = UpdateParams {
-        signature: vec![AccountSignatures {
+        signatures: vec![AccountSignatures {
             sigs: signature_map,
         }],
         signer: ACC_ADDR_OTHER,
@@ -141,6 +178,32 @@ fn test_update_operator() {
             entry_point: OwnedEntrypointName::new_unchecked("update".into()),
         },
     };
+
+    // Check operator in state
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.viewMessageHash".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&update_param)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query getPriceData");
+
+    let message_hash: [u8; 32] =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    println!("Sign this message hash: {}", HashSha2256(message_hash));
+
+    let signature:SignatureEd25519 = "B11BF02505146DE37ECBB09FEE70FEED011983B3415A340FCC55020B7E69EB08576BA2948D1BC4E47245809DCA1EC2F40DBD594FDCF40E2B5389198A06B2EE0C".parse().unwrap();
+    println!("Signature: {:?}", signature.0);
 
     // Update operator with the permit function.
     let update = chain
@@ -182,131 +245,6 @@ fn test_update_operator() {
 
     assert_eq!(stored_price_data, price_data);
 
-    // // Create input parematers for the `permit` updateOperator function.
-    // let update_operator = UpdateOperator {
-    //     update:   OperatorUpdate::Add,
-    //     operator: ADDR_OWNER,
-    // };
-    // let payload = UpdateOperatorParams(vec![update_operator]);
-
-    // let mut inner_signature_map = BTreeMap::new();
-    // inner_signature_map.insert(0u8, concordium_std::Signature::Ed25519(SIGNATURE_UPDATE_OPERATOR));
-
-    // let mut signature_map = BTreeMap::new();
-    // signature_map.insert(0u8, CredentialSignatures {
-    //     sigs: inner_signature_map,
-    // });
-
-    // let permit_update_operator_param = PermitParam {
-    //     signature: AccountSignatures {
-    //         sigs: signature_map,
-    //     },
-    //     signer:    ACC_ADDR_OTHER,
-    //     message:   PermitMessage {
-    //         timestamp:        Timestamp::from_timestamp_millis(10000000000),
-    //         contract_address: ContractAddress {
-    //             index:    0,
-    //             subindex: 0,
-    //         },
-    //         entry_point:      OwnedEntrypointName::new_unchecked("updateOperator".into()),
-    //         nonce:            0,
-    //         payload:          to_bytes(&payload),
-    //     },
-    // };
-
-    // // Update operator with the permit function.
-    // let update = chain
-    //     .contract_update(
-    //         Signer::with_one_key(),
-    //         ACC_ADDR_OWNER,
-    //         Address::Account(ACC_ADDR_OWNER),
-    //         Energy::from(10000),
-    //         UpdateContractPayload {
-    //             amount:       Amount::zero(),
-    //             address:      initialization.contract_address,
-    //             receive_name: OwnedReceiveName::new_unchecked("cis3_nft.permit".to_string()),
-    //             message:      OwnedParameter::from_serial(&permit_update_operator_param)
-    //                 .expect("Should be a valid inut parameter"),
-    //         },
-    //     )
-    //     .expect("Should be able to update operator with permit");
-
-    // // Check logged events.
-    // let events: Vec<(ContractAddress, &[ContractEvent])> = update.events().collect();
-
-    // // Check update operator event.
-    // let update_operator_event = &events[0].1[0];
-
-    // // Check event tag.
-    // assert_eq!(
-    //     update_operator_event.as_ref()[0],
-    //     UPDATE_OPERATOR_EVENT_TAG,
-    //     "Update operator event tag is wrong"
-    // );
-
-    // // We remove the tag byte at the beginning of the event.
-    // let update_operator_event_type: UpdateOperatorEvent =
-    //     from_bytes(&update_operator_event.as_ref()[1..]).expect("Tag removal should work");
-
-    // assert_eq!(
-    //     update_operator_event_type,
-    //     UpdateOperatorEvent {
-    //         update:   OperatorUpdate::Add,
-    //         owner:    ADDR_OTHER,
-    //         operator: ADDR_OWNER,
-    //     },
-    //     "Update operator event is wrong"
-    // );
-
-    // // Check nonce event.
-    // let nonce_event = &events[0].1[1];
-
-    // // Check event tag.
-    // assert_eq!(nonce_event.as_ref()[0], NONCE_EVENT_TAG, "Nonce event tag is wrong");
-
-    // // We remove the tag byte at the beginning of the event.
-    // let nonce_event_type: NonceEvent =
-    //     from_bytes(&nonce_event.as_ref()[1..]).expect("Tag removal should work");
-
-    // assert_eq!(
-    //     nonce_event_type,
-    //     NonceEvent {
-    //         account: ACC_ADDR_OTHER,
-    //         nonce:   0,
-    //     },
-    //     "Nonce event is wrong"
-    // );
-
-    // // Check operator in state
-    // let operator_of_query = OperatorOfQuery {
-    //     address: ADDR_OWNER,
-    //     owner:   ADDR_OTHER,
-    // };
-
-    // let operator_of_query_vector = OperatorOfQueryParams {
-    //     queries: vec![operator_of_query],
-    // };
-
-    // // Check operator in state
-    // let invoke = chain
-    //     .contract_invoke(
-    //         ACC_ADDR_OWNER,
-    //         Address::Account(ACC_ADDR_OWNER),
-    //         Energy::from(10000),
-    //         UpdateContractPayload {
-    //             amount:       Amount::zero(),
-    //             address:      initialization.contract_address,
-    //             receive_name: OwnedReceiveName::new_unchecked("cis3_nft.operatorOf".to_string()),
-    //             message:      OwnedParameter::from_serial(&operator_of_query_vector)
-    //                 .expect("Should be a valid inut parameter"),
-    //         },
-    //     )
-    //     .expect("Should be able to query operatorOf");
-
-    // let is_operator_of: OperatorOfQueryResponse =
-    //     from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    // assert_eq!(is_operator_of.0, [true])
 }
 
 #[test]

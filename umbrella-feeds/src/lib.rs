@@ -79,6 +79,12 @@ enum CustomContractError {
     /// Upgrade failed because the smart contract version of the module is not
     /// supported.
     FailedUpgradeUnsupportedModuleVersion, // -21
+    /// Failed to verify signature because data was malformed.
+    MalformedData,// -22
+    /// Failed signature verification: Invalid signature.
+    WrongSignature,// -23
+    MissingAccount,// -24
+    EntrypointMismatch,// -25
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -87,6 +93,16 @@ impl From<LogError> for CustomContractError {
         match le {
             LogError::Full => Self::LogFull,
             LogError::Malformed => Self::LogMalformed,
+        }
+    }
+}
+
+/// Mapping account signature error to CustomContractError
+impl From<CheckAccountSignatureError> for CustomContractError {
+    fn from(e: CheckAccountSignatureError) -> Self {
+        match e {
+            CheckAccountSignatureError::MissingAccount => Self::MissingAccount,
+            CheckAccountSignatureError::MalformedData => Self::MalformedData,
         }
     }
 }
@@ -356,7 +372,7 @@ pub struct Message {
 #[derive(Serialize, SchemaType)]
 pub struct UpdateParams {
     /// Signature/s. The CIS3 standard supports multi-sig accounts.
-    pub signature: Vec<AccountSignatures>,
+    pub signatures: Vec<AccountSignatures>,
     /// Account that created the above signature.
     pub signer: AccountAddress,
     /// Message that was signed.
@@ -420,9 +436,21 @@ fn update<S: HasStateApi>(
         CustomContractError::ChainIdMismatch
     );
 
+    // Check signature has correct entrypoint.
+    ensure_eq!(
+        message.entry_point,
+        OwnedEntrypointName::new_unchecked(String::from("update")),
+        CustomContractError::EntrypointMismatch
+    );
+
     let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
 
-    println!("{:?}", message_hash);
+    //Check signature.
+    let valid_signature =
+        host.check_account_signature(param.signer, &param.signatures[0], &message_hash)?;
+    ensure!(valid_signature, CustomContractError::WrongSignature.into());
+
+    // TODO
     // verifySignatures(priceDataHash, _signatures);
 
     for element in message.price_feed {
