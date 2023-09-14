@@ -12,21 +12,25 @@ use primitive_types::U256;
 /// encoding before emitted in the TokenMetadata event.
 const NAME: &str = "UmbrellaFeeds";
 
+/// Does not exist on Concordium but kept for consistency.
+const CHAIN_ID: u16 = 0;
+
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Default)]
 #[repr(transparent)]
 pub struct U256Wrapper(pub U256);
 
-struct PriceData {
+#[derive(Serialize, SchemaType, Copy, Clone)]
+pub struct PriceData {
     /// @dev this is placeholder, that can be used for some additional data
     /// atm of creating this smart contract, it is only used as marker for removed data (when == type(uint8).max)
-    data: u8,
+    pub data: u8,
     /// @dev heartbeat: how often price data will be refreshed in case price stay flat
     /// Using u64 instead of u24 here (different to solidity original smart contracts)
-    heartbeat: u64,
+    pub heartbeat: u64,
     /// @dev timestamp: price time, at this time validators run consensus
-    timestamp: u32,
+    pub timestamp: u32,
     /// @dev price
-    price: u128,
+    pub price: u128,
 }
 
 #[derive(Serial, DeserialWithState)]
@@ -38,7 +42,7 @@ struct State<S> {
     required_signatures: u16,
     decimals: u8,
     // name => PriceData
-    _prices: StateMap<HashSha2256, PriceData, S>,
+    prices: StateMap<HashSha2256, PriceData, S>,
 }
 
 /// Your smart contract errors.
@@ -60,6 +64,11 @@ enum CustomContractError {
     OverFlow,
     NotSupportedUseUpgradeFunctionInstead,
     ContractNotInitialised,
+    ArraysDataDoNotMatch,
+    ChainIdMismatch,
+    OldData,
+    WrongContract,
+    Expired,
     Unauthorized,
     /// Upgrade failed because the new module does not exist.
     FailedUpgradeMissingModule,
@@ -153,7 +162,7 @@ fn init<S: HasStateApi>(
         staking_bank: param.staking_bank,
         required_signatures: param.required_signatures,
         decimals: param.decimals,
-        _prices: state_builder.new_map(),
+        prices: state_builder.new_map(),
     })
 }
 
@@ -218,14 +227,14 @@ fn contract_upgrade<S: HasStateApi>(
     // }
 
     // Check that
-    ensure_eq!(
-        state
-            .deployed_at
-            .checked_add(Duration::from_days(3))
-            .ok_or(CustomContractError::OverFlow),
-        Ok(ctx.metadata().block_time()),
-        CustomContractError::ContractNotInitialised
-    );
+    // ensure_eq!(
+    //     state
+    //         .deployed_at
+    //         .checked_add(Duration::from_days(3))
+    //         .ok_or(CustomContractError::OverFlow),
+    //     Ok(ctx.metadata().block_time()),
+    //     CustomContractError::ContractNotInitialised
+    // );
 
     // Parse the parameter.
     let param: UpgradeParams = ctx.parameter_cursor().get()?;
@@ -269,6 +278,169 @@ fn destroy<S: HasStateApi>(
     _host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> Result<(), CustomContractError> {
     bail!(CustomContractError::NotSupportedUseUpgradeFunctionInstead);
+}
+
+/// Helper function to calculate the `message_hash`.
+#[receive(
+    contract = "umbrella_feeds",
+    name = "viewMessageHash",
+    parameter = "UpdateParams",
+    return_value = "[u8;32]",
+    crypto_primitives,
+    mutable
+)]
+fn contract_view_message_hash<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    _host: &mut impl HasHost<State<S>, StateApiType = S>,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> Result<[u8; 32], CustomContractError> {
+    // Parse the parameter.
+    let mut cursor = ctx.parameter_cursor();
+    // The input parameter is `PermitParam` but we only read the initial part of it
+    // with `PermitParamPartial`. I.e. we read the `signature` and the
+    // `signer`, but not the `message` here.
+    let param: UpdateParamsPartial = cursor.get()?;
+
+    // The input parameter is `PermitParam` but we have only read the initial part
+    // of it with `PermitParamPartial` so far. We read in the `message` now.
+    // `(cursor.size() - cursor.cursor_position()` is the length of the message in
+    // bytes.
+    let mut message_bytes = vec![0; (cursor.size() - cursor.cursor_position()) as usize];
+
+    cursor.read_exact(&mut message_bytes)?;
+
+    // The message signed in the Concordium browser wallet is prepended with the
+    // `account` address and 8 zero bytes. Accounts in the Concordium browser wallet
+    // can either sign a regular transaction (in that case the prepend is
+    // `account` address and the nonce of the account which is by design >= 1)
+    // or sign a message (in that case the prepend is `account` address and 8 zero
+    // bytes). Hence, the 8 zero bytes ensure that the user does not accidentally
+    // sign a transaction. The account nonce is of type u64 (8 bytes).
+    let mut msg_prepend = vec![0; 32 + 8];
+    // Prepend the `account` address of the signer.
+    msg_prepend[0..32].copy_from_slice(param.signer.as_ref());
+    // Prepend 8 zero bytes.
+    msg_prepend[32..40].copy_from_slice(&[0u8; 8]);
+    // Calculate the message hash.
+    let message_hash = crypto_primitives
+        .hash_sha2_256(&[&msg_prepend[0..40], &message_bytes].concat())
+        .0;
+
+    Ok(message_hash)
+}
+
+// #[derive(Serialize, SchemaType)]
+// pub struct UpdateParams {
+//     pub price_keys: Vec<HashSha2256>,
+//     pub price_datas: Vec<PriceData>,
+//     pub signatures: Vec<Signature>,
+// }
+
+/// Part of the parameter type for the contract function `permit`.
+/// Specifies the message that is signed.
+#[derive(SchemaType, Serialize, Clone)]
+pub struct Message {
+    /// The contract_address that the signature is intended for.
+    pub contract_address: ContractAddress,
+    /// A timestamp to make signatures expire.
+    pub timestamp: Timestamp,
+    pub chain_id: u16,
+    /// The entry_point that the signature is intended for.
+    pub entry_point: OwnedEntrypointName,
+    pub price_feed: Vec<(HashSha2256, PriceData)>,
+}
+
+/// The parameter type for the contract function `permit`.
+/// Takes a signature, the signer, and the message that was signed.
+#[derive(Serialize, SchemaType)]
+pub struct UpdateParams {
+    /// Signature/s. The CIS3 standard supports multi-sig accounts.
+    pub signature: Vec<AccountSignatures>,
+    /// Account that created the above signature.
+    pub signer: AccountAddress,
+    /// Message that was signed.
+    pub message: Message,
+}
+
+#[derive(Serialize)]
+pub struct UpdateParamsPartial {
+    /// Signature/s. The CIS3 standard supports multi-sig accounts.
+    signature: Vec<AccountSignatures>,
+    /// Account that created the above signature.
+    signer: AccountAddress,
+}
+
+#[receive(
+    contract = "umbrella_feeds",
+    name = "update",
+    parameter = "UpdateParams",
+    error = "CustomContractError",
+    crypto_primitives,
+    mutable
+)]
+fn update<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> Result<(), CustomContractError> {
+    let param: UpdateParams = ctx.parameter_cursor().get()?;
+
+    // // Update the nonce.
+    // let mut entry = host.state_mut().nonces_registry.entry(param.signer).or_insert_with(|| 0);
+
+    // // Get the current nonce.
+    // let nonce = *entry;
+    // // Bump nonce.
+    // *entry += 1;
+    // drop(entry);
+
+    let message = param.message;
+
+    // Check the nonce to prevent replay attacks.
+    // ensure_eq!(message.nonce, nonce, CustomContractError::NonceMismatch.into());
+
+    // Check that the signature was intended for this contract.
+    ensure_eq!(
+        message.contract_address,
+        ctx.self_address(),
+        CustomContractError::WrongContract.into()
+    );
+
+    // Check signature is not expired.
+    ensure!(
+        message.timestamp > ctx.metadata().slot_time(),
+        CustomContractError::Expired.into()
+    );
+
+    // Check signature has correct chain_id.
+    ensure!(
+        message.chain_id > CHAIN_ID,
+        CustomContractError::ChainIdMismatch.into()
+    );
+
+    let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
+
+    println!("{:?}", message_hash);
+    // verifySignatures(priceDataHash, _signatures);
+
+    for element in message.price_feed {
+        let price_key: HashSha2256 = element.0;
+        let price_data: PriceData = element.1;
+
+        // we do not allow for older prices
+        // at the same time it prevents from reusing signatures
+        let old_price_data = host.state().prices.get(&price_key).map(|s| *s);
+        if let Some(old_price_data) = old_price_data {
+            ensure!(
+                old_price_data.timestamp < price_data.timestamp,
+                CustomContractError::OldData.into()
+            );
+        }
+
+        host.state_mut().prices.insert(price_key, price_data);
+    }
+
+    Ok(())
 }
 
 /// View function that returns the balance of an validator

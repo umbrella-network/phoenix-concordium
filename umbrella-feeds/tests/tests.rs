@@ -121,8 +121,6 @@ fn test_upgrade_without_migration_function() {
         migrate: None,
     };
 
-    // TODO increase time to 3 days
-
     let update = chain.contract_update(
         Signer::with_one_key(), // Used for specifying the number of signatures.
         ACC_ADDR_OWNER,         // Invoker account.
