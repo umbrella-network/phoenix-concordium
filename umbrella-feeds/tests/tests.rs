@@ -7,18 +7,15 @@ use concordium_std::{
     Timestamp,
 };
 use concordium_std::{Deserial, HashSha2256};
+use primitive_types::U256;
 use registry::ImportContractsParam;
 use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams, UpgradeParams};
+use staking_bank::{InitContractsParamStakingBank, U256Wrapper};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
 
-const SIGNATURE: SignatureEd25519 = SignatureEd25519([
-    177, 27, 240, 37, 5, 20, 109, 227, 126, 203, 176, 159, 238, 112, 254, 237, 1, 25, 131, 179, 65,
-    90, 52, 15, 204, 85, 2, 11, 126, 105, 235, 8, 87, 107, 162, 148, 141, 27, 196, 228, 114, 69,
-    128, 157, 202, 30, 194, 244, 13, 189, 89, 79, 220, 244, 14, 43, 83, 137, 25, 138, 6, 178, 238,
-    12,
-]);
+const SIGNATURE: SignatureEd25519 = SignatureEd25519([189, 152, 44, 34, 186, 100, 205, 30, 179, 165, 189, 160, 222, 181, 141, 211, 40, 16, 39, 157, 133, 223, 86, 89, 119, 124, 107, 189, 82, 141, 116, 40, 9, 246, 230, 45, 235, 191, 51, 165, 44, 93, 75, 46, 84, 25, 196, 26, 121, 102, 175, 172, 186, 68, 159, 184, 88, 93, 48, 126, 83, 2, 80, 15]);
 
 const KEY_HASH: HashSha2256 = HashSha2256([
     120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
@@ -33,7 +30,7 @@ const PUBLIC_KEY: [u8; 32] = [
 
 const ACC_ADDR_OTHER: AccountAddress = AccountAddress([1u8; 32]);
 
-fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSuccess) {
+fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSuccess,ContractInitSuccess) {
     let mut chain = Chain::new();
 
     let balance = AccountBalance {
@@ -93,6 +90,37 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSucces
         )
         .expect("Initialization of `Umbrella feeds` should always succeed");
 
+   // Deploying staking bank
+
+    let deployment_staking_bank = chain
+        .module_deploy_v1(
+            Signer::with_one_key(),
+            ACC_ADDR_OWNER,
+            module_load_v1("../staking-bank/staking_bank.wasm.v1")
+                .expect("`staking_bank.wasm.v1` module should be loaded"),
+        )
+        .expect("`staking_bank.wasm.v1` deployment should always succeed");
+
+
+    let input_parameter = InitContractsParamStakingBank {
+        validators_count: U256Wrapper(U256::from_dec_str("15").unwrap()),
+    };
+
+    let initialization_staking_bank = chain
+        .contract_init(
+            Signer::with_one_key(),
+            ACC_ADDR_OWNER,
+            Energy::from(10000),
+            InitContractPayload {
+                amount: Amount::zero(),
+                mod_ref: deployment_staking_bank.module_reference,
+                init_name: OwnedContractName::new_unchecked("init_staking_bank".to_string()),
+                param: OwnedParameter::from_serial(&input_parameter)
+                    .expect("`InitContractsParam` should be a valid inut parameter"),
+            },
+        )
+        .expect("Initialization of `Staking_bank` should always succeed");
+
     // Deploy 'umbrella_feeds' contract
 
     let deployment = chain
@@ -104,13 +132,10 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSucces
         )
         .expect("`Umbrella_feeds.wasm.v1` deployment should always succeed");
 
-    let input_parameter = InitContractsParam {
+    let input_parameter_2 = InitContractsParam {
         registry: initialization_registry.contract_address,
-        required_signatures: 2,
-        staking_bank: ContractAddress {
-            index: 1,
-            subindex: 0,
-        },
+        required_signatures: 1,
+        staking_bank: initialization_staking_bank.contract_address,
         decimals: 4,
     };
 
@@ -123,18 +148,18 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSucces
                 amount: Amount::zero(),
                 mod_ref: deployment.module_reference,
                 init_name: OwnedContractName::new_unchecked("init_umbrella_feeds".to_string()),
-                param: OwnedParameter::from_serial(&input_parameter)
+                param: OwnedParameter::from_serial(&input_parameter_2)
                     .expect("`InitContractsParam` should be a valid inut parameter"),
             },
         )
         .expect("Initialization of `Umbrella feeds` should always succeed");
 
-    (chain, initialization, initialization_registry)
+    (chain, initialization, initialization_registry,initialization_staking_bank)
 }
 
 #[test]
 fn test_init() {
-    let (chain, initialization, initalization_registry) = setup_chain_and_contract();
+    let (chain, initialization, initalization_registry,initialization_staking_bank) = setup_chain_and_contract();
     assert_eq!(
         chain.contract_balance(initialization.contract_address),
         Some(Amount::zero()),
@@ -145,7 +170,7 @@ fn test_init() {
 /// Permit update operator function.
 #[test]
 fn test_update_operator() {
-    let (mut chain, initialization, initalization_registry) = setup_chain_and_contract();
+    let (mut chain, initialization, initalization_registry,initialization_staking_bank) = setup_chain_and_contract();
 
     let mut inner_signature_map = BTreeMap::new();
     inner_signature_map.insert(0u8, concordium_std::Signature::Ed25519(SIGNATURE));
@@ -169,7 +194,7 @@ fn test_update_operator() {
         signatures: vec![AccountSignatures {
             sigs: signature_map,
         }],
-        signer: ACC_ADDR_OTHER,
+        signer: vec![ACC_ADDR_OTHER],
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization.contract_address,
@@ -197,12 +222,18 @@ fn test_update_operator() {
         )
         .expect("Should be able to query getPriceData");
 
-    let message_hash: [u8; 32] =
+    let message_hashes: Vec<[u8; 32]> =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    println!("Sign this message hash: {}", HashSha2256(message_hash));
+    for (i, message_hash) in message_hashes.iter().enumerate() {
+        println!(
+            "Signer {} sign this message hash: {}",
+            i,
+            HashSha2256(*message_hash)
+        );
+    }
 
-    let signature:SignatureEd25519 = "B11BF02505146DE37ECBB09FEE70FEED011983B3415A340FCC55020B7E69EB08576BA2948D1BC4E47245809DCA1EC2F40DBD594FDCF40E2B5389198A06B2EE0C".parse().unwrap();
+    let signature:SignatureEd25519 = "30EB801E3A7C07C8FC0095C9C76DEC091CC622C9E7F98083582CD63C192AAF9D63FD1434A77D731AD324FD141A4C2E238D72A8007934EF818EF8F59E072BCB00".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     // Update operator with the permit function.
@@ -244,12 +275,11 @@ fn test_update_operator() {
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
     assert_eq!(stored_price_data, price_data);
-
 }
 
 #[test]
 fn test_upgrade_without_migration_function() {
-    let (mut chain, initialization, initalization_registry) = setup_chain_and_contract();
+    let (mut chain, initialization, initalization_registry,initialization_staking_bank) = setup_chain_and_contract();
 
     let input_parameter = ImportContractsParam {
         entries: vec![initialization.contract_address],

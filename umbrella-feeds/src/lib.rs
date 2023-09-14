@@ -80,11 +80,14 @@ enum CustomContractError {
     /// supported.
     FailedUpgradeUnsupportedModuleVersion, // -21
     /// Failed to verify signature because data was malformed.
-    MalformedData,// -22
+    MalformedData, // -22
     /// Failed signature verification: Invalid signature.
-    WrongSignature,// -23
-    MissingAccount,// -24
-    EntrypointMismatch,// -25
+    WrongSignature, // -23
+    MissingAccount,                        // -24
+    EntrypointMismatch,                    // -25
+    NotEnoughSignatures,                   // -26
+    SignaturesOutOfOrder,   // -27
+    InvalidSigner, // -28
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -302,7 +305,7 @@ fn destroy<S: HasStateApi>(
     contract = "umbrella_feeds",
     name = "viewMessageHash",
     parameter = "UpdateParams",
-    return_value = "[u8;32]",
+    return_value = "Vec<[u8;32]>",
     crypto_primitives,
     mutable
 )]
@@ -310,7 +313,7 @@ fn contract_view_message_hash<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &mut impl HasHost<State<S>, StateApiType = S>,
     crypto_primitives: &impl HasCryptoPrimitives,
-) -> Result<[u8; 32], CustomContractError> {
+) -> Result<Vec<[u8; 32]>, CustomContractError> {
     // Parse the parameter.
     let mut cursor = ctx.parameter_cursor();
     // The input parameter is `PermitParam` but we only read the initial part of it
@@ -334,24 +337,84 @@ fn contract_view_message_hash<S: HasStateApi>(
     // bytes). Hence, the 8 zero bytes ensure that the user does not accidentally
     // sign a transaction. The account nonce is of type u64 (8 bytes).
     let mut msg_prepend = vec![0; 32 + 8];
-    // Prepend the `account` address of the signer.
-    msg_prepend[0..32].copy_from_slice(param.signer.as_ref());
-    // Prepend 8 zero bytes.
-    msg_prepend[32..40].copy_from_slice(&[0u8; 8]);
-    // Calculate the message hash.
-    let message_hash = crypto_primitives
-        .hash_sha2_256(&[&msg_prepend[0..40], &message_bytes].concat())
-        .0;
 
-    Ok(message_hash)
+    let mut message_hashes: Vec<[u8; 32]> = vec![];
+
+    for i in 0..param.signer.len() {
+        // Prepend the `account` address of the signer.
+        msg_prepend[0..32].copy_from_slice(param.signer[i].as_ref());
+        // Prepend 8 zero bytes.
+        msg_prepend[32..40].copy_from_slice(&[0u8; 8]);
+        // Calculate the message hash.
+        message_hashes.push(
+            crypto_primitives
+                .hash_sha2_256(&[&msg_prepend[0..40], &message_bytes].concat())
+                .0,
+        );
+    }
+
+    Ok(message_hashes)
 }
 
-// #[derive(Serialize, SchemaType)]
-// pub struct UpdateParams {
-//     pub price_keys: Vec<HashSha2256>,
-//     pub price_datas: Vec<PriceData>,
-//     pub signatures: Vec<Signature>,
-// }
+/// Helper function to verify the signature.
+fn verify_signatures<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<State<S>, StateApiType = S>,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> Result<bool, CustomContractError> {
+    let param: UpdateParams = ctx.parameter_cursor().get()?;
+
+    ensure!(
+        param.signatures.len() >= host.state().required_signatures as usize,
+        CustomContractError::NotEnoughSignatures
+    );
+
+    let mut prev_signer = AccountAddress([0u8; 32]);
+
+    let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
+
+    let mut validators:Vec<AccountAddress> = vec![];
+
+    // to save gas we check only required number of signatures
+    // case, where you can have part of signatures invalid but still enough valid in total is not supported
+    for i in 0..host.state().required_signatures {
+        //Check signature.
+        let valid_signature = host.check_account_signature(
+            param.signer[i as usize],
+            &param.signatures[i as usize],
+            &message_hash[i as usize],
+        )?;
+        ensure!(valid_signature, CustomContractError::WrongSignature);
+
+        ensure!(
+            prev_signer < param.signer[i as usize],
+            CustomContractError::SignaturesOutOfOrder
+        );
+
+        validators.push(param.signer[i as usize]);
+
+        prev_signer = param.signer[i as usize];
+    }
+
+    let are_valid_signers = host.invoke_contract_read_only::<Vec<AccountAddress>>(
+        &host.state().staking_bank,
+        &validators,
+        EntrypointName::new_unchecked("verifyValidators"),
+        Amount::zero(),
+    )?;
+
+    let are_valid_signers:bool = are_valid_signers
+        .ok_or(CustomContractError::InvokeContractError)?
+        .get()?;
+
+        ensure_eq!(
+            are_valid_signers,
+            true,
+            CustomContractError::InvalidSigner
+        );
+
+    Ok(true)
+}
 
 /// Part of the parameter type for the contract function `permit`.
 /// Specifies the message that is signed.
@@ -373,8 +436,8 @@ pub struct Message {
 pub struct UpdateParams {
     /// Signature/s. The CIS3 standard supports multi-sig accounts.
     pub signatures: Vec<AccountSignatures>,
-    /// Account that created the above signature.
-    pub signer: AccountAddress,
+    /// Accounts that created the above signatures.
+    pub signer: Vec<AccountAddress>,
     /// Message that was signed.
     pub message: Message,
 }
@@ -383,8 +446,8 @@ pub struct UpdateParams {
 pub struct UpdateParamsPartial {
     /// Signature/s. The CIS3 standard supports multi-sig accounts.
     pub signature: Vec<AccountSignatures>,
-    /// Account that created the above signature.
-    pub signer: AccountAddress,
+    /// Accounts that created the above signatures.
+    pub signer: Vec<AccountAddress>,
 }
 
 #[receive(
@@ -411,10 +474,15 @@ fn update<S: HasStateApi>(
     // *entry += 1;
     // drop(entry);
 
+    ensure!(
+        param.signatures.len() == param.signer.len(),
+        CustomContractError::ArraysDataDoNotMatch
+    );
+
     let message = param.message;
 
     // Check the nonce to prevent replay attacks.
-    // ensure_eq!(message.nonce, nonce, CustomContractError::NonceMismatch.into());
+    // ensure_eq!(message.nonce, nonce, CustomContractError::NonceMismatch);
 
     // Check that the signature was intended for this contract.
     ensure_eq!(
@@ -443,15 +511,7 @@ fn update<S: HasStateApi>(
         CustomContractError::EntrypointMismatch
     );
 
-    let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
-
-    //Check signature.
-    let valid_signature =
-        host.check_account_signature(param.signer, &param.signatures[0], &message_hash)?;
-    ensure!(valid_signature, CustomContractError::WrongSignature.into());
-
-    // TODO
-    // verifySignatures(priceDataHash, _signatures);
+    let _is_ok = verify_signatures(ctx, host, crypto_primitives)?;
 
     for element in message.price_feed {
         let price_key: HashSha2256 = element.0;

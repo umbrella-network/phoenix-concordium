@@ -106,16 +106,16 @@ struct State {
 enum CustomContractError {
     /// Failed parsing the parameter.
     #[from(ParseError)]
-    ParseParams,
+    ParseParams, // -1
     /// Failed logging: Log is full.
-    LogFull,
+    LogFull, // -2
     /// Failed logging: Log is malformed.
-    LogMalformed,
+    LogMalformed, // -3
     /// Failed to invoke a contract.
-    InvokeContractError,
-    ValidatorDoesNotExist,
-    ValidatorsCountMisMatch,
-    NotValidator,
+    InvokeContractError, // -4
+    ValidatorDoesNotExist,   // -5
+    ValidatorsCountMisMatch, // -6
+    NotValidator,            // -7
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -179,20 +179,17 @@ fn _addresses() -> Vec<AccountAddress> {
 /// for the public key/nonce of a given account.
 #[derive(Serialize, SchemaType)]
 #[concordium(transparent)]
-pub struct InitContractsParam {
+pub struct InitContractsParamStakingBank {
     pub validators_count: U256Wrapper,
 }
 
 /// Init function that creates a new smart contract.
-#[init(
-    contract = "staking_bank",
-    parameter = "InitContractsParam"
-)]
+#[init(contract = "staking_bank", parameter = "InitContractsParamStakingBank")]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     _state_builder: &mut StateBuilder<S>,
 ) -> InitResult<State> {
-    let param: InitContractsParam = ctx.parameter_cursor().get()?;
+    let param: InitContractsParamStakingBank = ctx.parameter_cursor().get()?;
 
     let one = U256Wrapper(U256::from_dec_str("1000000000000000000").unwrap());
 
@@ -328,13 +325,15 @@ fn verify_validators<S: HasStateApi>(
 ) -> ReceiveResult<bool> {
     let _accounts: Vec<AccountAddress> = ctx.parameter_cursor().get()?;
 
+    let mut return_value = true;
+
     for _validator in _accounts {
-        if _is_validator(_validator) {
-            return Ok(false);
+        if !_is_validator(_validator) {
+            return_value = false;
         }
     }
 
-    Ok(true)
+    Ok(return_value)
 }
 
 /// View function that returns the balance of an validator
@@ -465,7 +464,11 @@ fn unregister<S: HasStateApi>(
 }
 
 /// View function that returns the balance of an validator
-#[receive(contract = "staking_bank", name = "_addresses", return_value="Vec<AccountAddress>")]
+#[receive(
+    contract = "staking_bank",
+    name = "_addresses",
+    return_value = "Vec<AccountAddress>"
+)]
 fn addresses_external<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
@@ -474,12 +477,17 @@ fn addresses_external<S: HasStateApi>(
 }
 
 /// View function that returns the balance of an validator
-#[receive(contract = "staking_bank", name = "_isValidator", parameter="AccountAddress", return_value="bool")]
+#[receive(
+    contract = "staking_bank",
+    name = "_isValidator",
+    parameter = "AccountAddress",
+    return_value = "bool"
+)]
 fn is_validator<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<bool> {
-  let _account: AccountAddress = ctx.parameter_cursor().get()?;
+    let _account: AccountAddress = ctx.parameter_cursor().get()?;
 
     Ok(_is_validator(_account))
 }
@@ -746,7 +754,7 @@ mod tests {
 
         let mut state_builder = TestStateBuilder::new();
 
-        let parameter_bytes = to_bytes(&InitContractsParam {
+        let parameter_bytes = to_bytes(&InitContractsParamStakingBank {
             validators_count: U256Wrapper(U256::from_dec_str("15").unwrap()),
         });
         ctx.set_parameter(&parameter_bytes);
