@@ -3,34 +3,58 @@ use std::collections::BTreeMap;
 use concordium_smart_contract_testing::*;
 use concordium_smart_contract_testing::{AccountAccessStructure, *};
 use concordium_std::{
-    AccountPublicKeys, AccountSignatures, CredentialSignatures, PublicKey, SignatureEd25519,
-    Timestamp,
+    AccountPublicKeys, AccountSignatures, CredentialSignatures, PublicKey, PublicKeyEd25519,
+    SignatureEd25519, Timestamp,
 };
 use concordium_std::{Deserial, HashSha2256};
 use primitive_types::U256;
 use registry::ImportContractsParam;
-use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams, UpgradeParams};
 use staking_bank::{InitContractsParamStakingBank, U256Wrapper};
+use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams, UpgradeParams};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
-
-const SIGNATURE: SignatureEd25519 = SignatureEd25519([189, 152, 44, 34, 186, 100, 205, 30, 179, 165, 189, 160, 222, 181, 141, 211, 40, 16, 39, 157, 133, 223, 86, 89, 119, 124, 107, 189, 82, 141, 116, 40, 9, 246, 230, 45, 235, 191, 51, 165, 44, 93, 75, 46, 84, 25, 196, 26, 121, 102, 175, 172, 186, 68, 159, 184, 88, 93, 48, 126, 83, 2, 80, 15]);
 
 const KEY_HASH: HashSha2256 = HashSha2256([
     120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
     253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
 ]);
 
+const SIGNATURE_1: SignatureEd25519 = SignatureEd25519([
+    189, 152, 44, 34, 186, 100, 205, 30, 179, 165, 189, 160, 222, 181, 141, 211, 40, 16, 39, 157,
+    133, 223, 86, 89, 119, 124, 107, 189, 82, 141, 116, 40, 9, 246, 230, 45, 235, 191, 51, 165, 44,
+    93, 75, 46, 84, 25, 196, 26, 121, 102, 175, 172, 186, 68, 159, 184, 88, 93, 48, 126, 83, 2, 80,
+    15,
+]);
+
+const SIGNATURE_2: SignatureEd25519 = SignatureEd25519([
+    246, 255, 94, 113, 247, 234, 107, 234, 171, 161, 187, 166, 178, 254, 207, 190, 62, 58, 27, 73,
+    93, 50, 138, 133, 251, 134, 108, 147, 177, 135, 6, 103, 189, 254, 232, 248, 23, 118, 167, 202,
+    229, 219, 88, 107, 45, 23, 216, 52, 133, 167, 61, 67, 197, 91, 252, 116, 67, 198, 118, 180,
+    204, 171, 181, 11,
+]);
+
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
-const PUBLIC_KEY: [u8; 32] = [
+const PUBLIC_KEY_SIGNER_1: [u8; 32] = [
     120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
     253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
 ];
 
-const ACC_ADDR_OTHER: AccountAddress = AccountAddress([1u8; 32]);
+// Private key: 12827BE279AA7DB7400E9322824CF3C7D5D599005836FDA506351B9B340838A9
+const PUBLIC_KEY_SIGNER_2: [u8; 32] = [
+    217, 108, 75, 18, 24, 234, 126, 194, 15, 70, 4, 214, 194, 240, 47, 163, 243, 107, 81, 132, 67,
+    243, 162, 209, 78, 136, 94, 127, 247, 21, 222, 221,
+];
 
-fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSuccess,ContractInitSuccess) {
+const SIGNER_1: AccountAddress = AccountAddress([1u8; 32]);
+const SIGNER_2: AccountAddress = AccountAddress([2u8; 32]);
+
+fn setup_chain_and_contract() -> (
+    Chain,
+    ContractInitSuccess,
+    ContractInitSuccess,
+    ContractInitSuccess,
+) {
     let mut chain = Chain::new();
 
     let balance = AccountBalance {
@@ -39,33 +63,70 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSucces
         locked: Amount::zero(),
     };
 
-    let mut inner_key_map: BTreeMap<KeyIndex, VerifyKey> = BTreeMap::new();
+    // Creating signer_1's keys
 
-    inner_key_map.insert(
+    let mut inner_key_map_signer_1: BTreeMap<KeyIndex, VerifyKey> = BTreeMap::new();
+
+    inner_key_map_signer_1.insert(
         KeyIndex(0u8),
         VerifyKey::Ed25519VerifyKey(
-            ed25519_dalek::PublicKey::from_bytes(&PUBLIC_KEY)
+            ed25519_dalek::PublicKey::from_bytes(&PUBLIC_KEY_SIGNER_1)
                 .expect("Should be able to create public key"),
         ),
     );
 
-    let credential_public_keys = CredentialPublicKeys {
-        keys: inner_key_map,
+    let credential_public_keys_signer_1 = CredentialPublicKeys {
+        keys: inner_key_map_signer_1,
         threshold: SignatureThreshold::ONE,
     };
 
-    let mut key_map: BTreeMap<CredentialIndex, CredentialPublicKeys> = BTreeMap::new();
-    key_map.insert(CredentialIndex { index: 0u8 }, credential_public_keys);
+    let mut key_map_signer_1: BTreeMap<CredentialIndex, CredentialPublicKeys> = BTreeMap::new();
+    key_map_signer_1.insert(
+        CredentialIndex { index: 0u8 },
+        credential_public_keys_signer_1,
+    );
 
-    let keys = AccountAccessStructure {
-        keys: key_map,
+    let keys_signer_1 = AccountAccessStructure {
+        keys: key_map_signer_1,
         threshold: AccountThreshold::ONE,
     };
 
-    chain.create_account(Account::new_with_keys(ACC_ADDR_OTHER, balance, keys));
+    chain.create_account(Account::new_with_keys(SIGNER_1, balance, keys_signer_1));
+
+    // Creating signer_2's keys
+
+    let mut inner_key_map_signer_2: BTreeMap<KeyIndex, VerifyKey> = BTreeMap::new();
+
+    inner_key_map_signer_2.insert(
+        KeyIndex(0u8),
+        VerifyKey::Ed25519VerifyKey(
+            ed25519_dalek::PublicKey::from_bytes(&PUBLIC_KEY_SIGNER_2)
+                .expect("Should be able to create public key"),
+        ),
+    );
+
+    let credential_public_keys_signer_2 = CredentialPublicKeys {
+        keys: inner_key_map_signer_2,
+        threshold: SignatureThreshold::ONE,
+    };
+
+    let mut key_map_signer_2: BTreeMap<CredentialIndex, CredentialPublicKeys> = BTreeMap::new();
+    key_map_signer_2.insert(
+        CredentialIndex { index: 0u8 },
+        credential_public_keys_signer_2,
+    );
+
+    let keys_signer_2 = AccountAccessStructure {
+        keys: key_map_signer_2,
+        threshold: AccountThreshold::ONE,
+    };
+    chain.create_account(Account::new_with_keys(SIGNER_2, balance, keys_signer_2));
+
+    // Creating contract owner's keys
+
     chain.create_account(Account::new(ACC_ADDR_OWNER, ACC_INITIAL_BALANCE));
 
-    // Deploying registry contract
+    // Deploying 'registry' contract
 
     let deployment_registry = chain
         .module_deploy_v1(
@@ -90,7 +151,7 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSucces
         )
         .expect("Initialization of `Umbrella feeds` should always succeed");
 
-   // Deploying staking bank
+    // Deploying 'staking bank' contract
 
     let deployment_staking_bank = chain
         .module_deploy_v1(
@@ -100,7 +161,6 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSucces
                 .expect("`staking_bank.wasm.v1` module should be loaded"),
         )
         .expect("`staking_bank.wasm.v1` deployment should always succeed");
-
 
     let input_parameter = InitContractsParamStakingBank {
         validators_count: U256Wrapper(U256::from_dec_str("15").unwrap()),
@@ -134,7 +194,7 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSucces
 
     let input_parameter_2 = InitContractsParam {
         registry: initialization_registry.contract_address,
-        required_signatures: 1,
+        required_signatures: 2,
         staking_bank: initialization_staking_bank.contract_address,
         decimals: 4,
     };
@@ -154,12 +214,18 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess, ContractInitSucces
         )
         .expect("Initialization of `Umbrella feeds` should always succeed");
 
-    (chain, initialization, initialization_registry,initialization_staking_bank)
+    (
+        chain,
+        initialization,
+        initialization_registry,
+        initialization_staking_bank,
+    )
 }
 
 #[test]
 fn test_init() {
-    let (chain, initialization, initalization_registry,initialization_staking_bank) = setup_chain_and_contract();
+    let (chain, initialization, initalization_registry, initialization_staking_bank) =
+        setup_chain_and_contract();
     assert_eq!(
         chain.contract_balance(initialization.contract_address),
         Some(Amount::zero()),
@@ -170,10 +236,20 @@ fn test_init() {
 /// Permit update operator function.
 #[test]
 fn test_update_operator() {
-    let (mut chain, initialization, initalization_registry,initialization_staking_bank) = setup_chain_and_contract();
+    let (mut chain, initialization, initalization_registry, initialization_staking_bank) =
+        setup_chain_and_contract();
+
+    let price_data = PriceData {
+        data: 7,
+        heartbeat: 12,
+        timestamp: 9,
+        price: 4,
+    };
+
+    // Creating signer_1's signature map
 
     let mut inner_signature_map = BTreeMap::new();
-    inner_signature_map.insert(0u8, concordium_std::Signature::Ed25519(SIGNATURE));
+    inner_signature_map.insert(0u8, concordium_std::Signature::Ed25519(SIGNATURE_1));
 
     let mut signature_map = BTreeMap::new();
     signature_map.insert(
@@ -183,18 +259,31 @@ fn test_update_operator() {
         },
     );
 
-    let price_data = PriceData {
-        data: 7,
-        heartbeat: 12,
-        timestamp: 9,
-        price: 4,
-    };
+    // Creating signer_2's signature map
+
+    let mut inner_signature_map_signer_2 = BTreeMap::new();
+    inner_signature_map_signer_2.insert(0u8, concordium_std::Signature::Ed25519(SIGNATURE_2));
+
+    let mut signature_map_signer_2 = BTreeMap::new();
+    signature_map_signer_2.insert(
+        0u8,
+        CredentialSignatures {
+            sigs: inner_signature_map_signer_2,
+        },
+    );
+
+    // Creating input parameter for pice data update
 
     let update_param = UpdateParams {
-        signatures: vec![AccountSignatures {
-            sigs: signature_map,
-        }],
-        signer: vec![ACC_ADDR_OTHER],
+        signatures: vec![
+            AccountSignatures {
+                sigs: signature_map,
+            },
+            AccountSignatures {
+                sigs: signature_map_signer_2,
+            },
+        ],
+        signer: vec![SIGNER_1, SIGNER_2],
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization.contract_address,
@@ -204,7 +293,8 @@ fn test_update_operator() {
         },
     };
 
-    // Check operator in state
+    // Checking message hash to be signed
+
     let invoke = chain
         .contract_invoke(
             ACC_ADDR_OWNER,
@@ -233,10 +323,17 @@ fn test_update_operator() {
         );
     }
 
-    let signature:SignatureEd25519 = "30EB801E3A7C07C8FC0095C9C76DEC091CC622C9E7F98083582CD63C192AAF9D63FD1434A77D731AD324FD141A4C2E238D72A8007934EF818EF8F59E072BCB00".parse().unwrap();
+    let signature:SignatureEd25519 = "F6FF5E71F7EA6BEAABA1BBA6B2FECFBE3E3A1B495D328A85FB866C93B1870667BDFEE8F81776A7CAE5DB586B2D17D83485A73D43C55BFC7443C676B4CCABB50B".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
-    // Update operator with the permit function.
+    let public_key: PublicKeyEd25519 =
+        "D96C4B1218EA7EC20F4604D6C2F02FA3F36B518443F3A2D14E885E7FF715DEDD"
+            .parse()
+            .unwrap();
+    println!("Public key: {:?}", public_key.0);
+
+    // Updating price data in contract
+
     let update = chain
         .contract_update(
             Signer::with_one_key(),
@@ -253,7 +350,8 @@ fn test_update_operator() {
         )
         .expect("Should be able to update operator with permit");
 
-    // Check operator in state
+    // Checking price data was updated correctly in contract
+
     let invoke = chain
         .contract_invoke(
             ACC_ADDR_OWNER,
@@ -279,7 +377,8 @@ fn test_update_operator() {
 
 #[test]
 fn test_upgrade_without_migration_function() {
-    let (mut chain, initialization, initalization_registry,initialization_staking_bank) = setup_chain_and_contract();
+    let (mut chain, initialization, initalization_registry, initialization_staking_bank) =
+        setup_chain_and_contract();
 
     let input_parameter = ImportContractsParam {
         entries: vec![initialization.contract_address],

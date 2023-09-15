@@ -86,8 +86,8 @@ enum CustomContractError {
     MissingAccount,                        // -24
     EntrypointMismatch,                    // -25
     NotEnoughSignatures,                   // -26
-    SignaturesOutOfOrder,   // -27
-    InvalidSigner, // -28
+    SignaturesOutOfOrder,                  // -27
+    InvalidSigner,                         // -28
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -373,7 +373,7 @@ fn verify_signatures<S: HasStateApi>(
 
     let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
 
-    let mut validators:Vec<AccountAddress> = vec![];
+    let mut validators: Vec<AccountAddress> = vec![];
 
     // to save gas we check only required number of signatures
     // case, where you can have part of signatures invalid but still enough valid in total is not supported
@@ -403,15 +403,11 @@ fn verify_signatures<S: HasStateApi>(
         Amount::zero(),
     )?;
 
-    let are_valid_signers:bool = are_valid_signers
+    let are_valid_signers: bool = are_valid_signers
         .ok_or(CustomContractError::InvokeContractError)?
         .get()?;
 
-        ensure_eq!(
-            are_valid_signers,
-            true,
-            CustomContractError::InvalidSigner
-        );
+    ensure_eq!(are_valid_signers, true, CustomContractError::InvalidSigner);
 
     Ok(true)
 }
