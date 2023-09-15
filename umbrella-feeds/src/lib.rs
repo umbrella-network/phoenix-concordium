@@ -772,3 +772,12 @@ fn get_chain_id<S: HasStateApi>(
 ) -> ReceiveResult<u16> {
     Ok(CHAIN_ID)
 }
+
+/// View function that returns the balance of an validator
+#[receive(contract = "umbrella_feeds", name = "DECIMALS", return_value = "u8")]
+fn decimals<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<u8> {
+    Ok(host.state().decimals)
+}
