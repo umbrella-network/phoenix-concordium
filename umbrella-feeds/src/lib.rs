@@ -33,6 +33,16 @@ pub struct PriceData {
     pub price: u128,
 }
 
+impl PriceData {
+    fn default() -> PriceData {
+        PriceData {
+            data: 0,
+            heartbeat: 0,
+            timestamp: 0,
+            price: 0,
+        }
+    }
+}
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 struct State<S> {
@@ -548,6 +558,85 @@ fn get_name<S: HasStateApi>(
     Ok(HashSha2256(key_hash))
 }
 
+/// View function that return many price data
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getManyPriceData",
+    parameter = "Vec<HashSha2256>",
+    return_value = "Vec<PriceData>"
+)]
+fn get_mny_price_data<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<Vec<PriceData>> {
+    let key_hashes: Vec<HashSha2256> = ctx.parameter_cursor().get()?;
+
+    let mut price_data = vec![];
+
+    for key_hash in key_hashes {
+        price_data.push(
+            host.state()
+                .prices
+                .get(&key_hash)
+                .map(|s| *s)
+                .ok_or(CustomContractError::FeedNotExist)?,
+        );
+    }
+
+    Ok(price_data)
+}
+
+/// View function that return many price data
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getManyPriceDataRaw",
+    parameter = "Vec<HashSha2256>",
+    return_value = "Vec<PriceData>"
+)]
+fn get_many_price_data_raw<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<Vec<PriceData>> {
+    let key_hashes: Vec<HashSha2256> = ctx.parameter_cursor().get()?;
+
+    let mut price_data = vec![];
+
+    for key_hash in key_hashes {
+        price_data.push(
+            host.state()
+                .prices
+                .get(&key_hash)
+                .map(|s| *s)
+                .unwrap_or(PriceData::default()),
+        );
+    }
+
+    Ok(price_data)
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "umbrella_feeds",
+    name = "prices",
+    parameter = "HashSha2256",
+    return_value = "PriceData"
+)]
+fn prices<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<PriceData> {
+    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+
+    let price_data = host
+        .state()
+        .prices
+        .get(&key_hash)
+        .map(|s| *s)
+        .unwrap_or(PriceData::default());
+
+    Ok(price_data)
+}
+
 /// View function that returns the balance of an validator
 #[receive(
     contract = "umbrella_feeds",
@@ -561,12 +650,125 @@ fn get_price_data<S: HasStateApi>(
 ) -> ReceiveResult<PriceData> {
     let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
 
-    let price_ata = host
+    let price_data = host
         .state()
         .prices
         .get(&key_hash)
         .map(|s| *s)
         .ok_or(CustomContractError::FeedNotExist)?;
 
-    Ok(price_ata)
+    Ok(price_data)
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getPrice",
+    parameter = "HashSha2256",
+    return_value = "u128"
+)]
+fn get_price<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<u128> {
+    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+
+    let price_data = host
+        .state()
+        .prices
+        .get(&key_hash)
+        .map(|s| *s)
+        .ok_or(CustomContractError::FeedNotExist)?;
+
+    Ok(price_data.price)
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getPriceTimestamp",
+    parameter = "HashSha2256",
+    return_value = "u32"
+)]
+fn get_price_timestamp<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<u32> {
+    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+
+    let price_data = host
+        .state()
+        .prices
+        .get(&key_hash)
+        .map(|s| *s)
+        .ok_or(CustomContractError::FeedNotExist)?;
+
+    Ok(price_data.timestamp)
+}
+
+#[derive(SchemaType, Serial)]
+pub struct SchemTypeTripleWrapper(u128, u32, u64);
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getPriceTimestampHeartbeat",
+    parameter = "HashSha2256",
+    return_value = "SchemTypeTripleWrapper"
+)]
+fn get_price_timestamp_heartbeat<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<SchemTypeTripleWrapper> {
+    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+
+    let price_data = host
+        .state()
+        .prices
+        .get(&key_hash)
+        .map(|s| *s)
+        .ok_or(CustomContractError::FeedNotExist)?;
+
+    Ok(SchemTypeTripleWrapper(
+        price_data.price,
+        price_data.timestamp,
+        price_data.heartbeat,
+    ))
+}
+
+/// View function that returns the balance of an validator
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getPriceDataByName",
+    parameter = "String",
+    return_value = "PriceData",
+    crypto_primitives
+)]
+fn get_price_data_by_name<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+    crypto_primitives: &impl HasCryptoPrimitives,
+) -> ReceiveResult<PriceData> {
+    let key: String = ctx.parameter_cursor().get()?;
+
+    // Calculate the key hash.
+    let key_hash = crypto_primitives.hash_sha2_256(key.as_bytes()).0;
+
+    let price_data = host
+        .state()
+        .prices
+        .get(&HashSha2256(key_hash))
+        .map(|s| *s)
+        .unwrap_or(PriceData::default());
+
+    Ok(price_data)
+}
+
+/// View function that returns the balance of an validator
+#[receive(contract = "umbrella_feeds", name = "getChainId", return_value = "u16")]
+fn get_chain_id<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<u16> {
+    Ok(CHAIN_ID)
 }
