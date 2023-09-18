@@ -219,13 +219,13 @@ fn decimals<S: HasStateApi>(
     Ok(host.state().decimals)
 }
 
-#[derive(SchemaType, Serial)]
+#[derive(SchemaType, Serial, Deserial, Debug, PartialEq, Eq)]
 pub struct SchemTypeQuinteWrapper(
-    U256Wrapper,
-    U256Wrapper,
-    U256Wrapper,
-    U256Wrapper,
-    U256Wrapper,
+    pub U256Wrapper,
+    pub U256Wrapper,
+    pub U256Wrapper,
+    pub U256Wrapper,
+    pub U256Wrapper,
 );
 
 /// View function that returns the balance of an validator
@@ -243,7 +243,7 @@ fn latest_round_data<S: HasStateApi>(
     let price_data = host.invoke_contract_read_only::<HashSha2256>(
         &host.state().umbrella_feeds,
         &hash,
-        EntrypointName::new_unchecked("getPriceDataRaw"),
+        EntrypointName::new_unchecked("prices"),
         Amount::zero(),
     )?;
 

@@ -10,7 +10,7 @@ use primitive_types::U256;
 use registry::ImportContractsParam;
 use staking_bank::{InitContractsParamStakingBank, U256Wrapper};
 use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams, UpgradeParams};
-use umbrella_feeds_reader::InitContractsParamUmbrellaFeedsReader;
+use umbrella_feeds_reader::{InitContractsParamUmbrellaFeedsReader, SchemTypeQuinteWrapper};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(100000000000);
@@ -470,7 +470,7 @@ fn test_update_operator() {
                     .expect("Should be a valid inut parameter"),
             },
         )
-        .expect("Should be able to query getPriceData");
+        .expect("Should be able to query getPriceDataRaw");
 
     let stored_price_data: PriceData =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
@@ -533,6 +533,8 @@ fn test_update_operator() {
 
     // We finished upgrading the `umbrellaFeeds` contract
 
+    // Checking `getPriceDataRaw` and `getPriceData` via umbrella_feeds_reader
+
     let invoke = chain
         .contract_invoke(
             ACC_ADDR_OWNER,
@@ -548,7 +550,7 @@ fn test_update_operator() {
                     .expect("Should be a valid inut parameter"),
             },
         )
-        .expect("Should be able to query getPriceData");
+        .expect("Should be able to query getPriceDataRaw");
 
     let stored_price_data: PriceData =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
@@ -576,4 +578,37 @@ fn test_update_operator() {
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
     assert_eq!(stored_price_data, price_data);
+
+    // Checking `latestRoundData` via umbrella_feeds_reader
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds_reader.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds_reader.latestRoundData".to_string(),
+                ),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Should be able to query latestRoundData");
+
+    let stored_price_data: SchemTypeQuinteWrapper =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    println!("{:?}", stored_price_data);
+
+    let expected_price_data = SchemTypeQuinteWrapper(
+        umbrella_feeds_reader::U256Wrapper(U256::from_dec_str("0").unwrap()),
+        umbrella_feeds_reader::U256Wrapper(U256::from_dec_str(price_data.price.to_string().as_str()).unwrap()),
+        umbrella_feeds_reader::U256Wrapper(U256::from_dec_str("0").unwrap()),
+        umbrella_feeds_reader::U256Wrapper(U256::from_dec_str(price_data.timestamp.to_string().as_str()).unwrap()),
+        umbrella_feeds_reader::U256Wrapper(U256::from_dec_str("0").unwrap()),
+    );
+
+    assert_eq!(stored_price_data, expected_price_data);
 }

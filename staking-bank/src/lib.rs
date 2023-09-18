@@ -6,6 +6,7 @@ use core::fmt::Debug;
 
 #[cfg(feature = "u256_amount")]
 use primitive_types::U256;
+// use common_types::U256Wrapper;
 
 const VALIDATOR_0: AccountAddress = AccountAddress([0u8; 32]);
 const VALIDATOR_1: AccountAddress = AccountAddress([1u8; 32]);
