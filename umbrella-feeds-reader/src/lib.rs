@@ -3,17 +3,9 @@
 //! # Umbrella feeds
 use concordium_std::*;
 use core::fmt::Debug;
-use registry::ImportContractsParam;
 
 #[cfg(feature = "u256_amount")]
 use primitive_types::U256;
-
-/// The baseurl for the token metadata, gets appended with the token ID as hex
-/// encoding before emitted in the TokenMetadata event.
-const NAME: &str = "UmbrellaFeeds";
-
-/// Does not exist on Concordium but kept for consistency.
-const CHAIN_ID: u16 = 0;
 
 #[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Default)]
 #[repr(transparent)]
@@ -90,17 +82,6 @@ pub struct PriceData {
     pub price: u128,
 }
 
-impl PriceData {
-    fn default() -> PriceData {
-        PriceData {
-            data: 0,
-            heartbeat: 0,
-            timestamp: 0,
-            price: 0,
-        }
-    }
-}
-
 #[derive(Serial, Deserial, Debug, SchemaType)]
 struct State {
     registry: ContractAddress,
@@ -116,65 +97,10 @@ enum CustomContractError {
     /// Failed parsing the parameter.
     #[from(ParseError)]
     ParseParams, // -1
-    /// Failed logging: Log is full.
-    LogFull, // -2
-    /// Failed logging: Log is malformed.
-    LogMalformed, // -3
     /// Failed to invoke a contract.
-    InvokeContractError, // -4
-    InvalidRequiredSignatures,             // -5
-    ValidatorDoesNotExist,                 // -6
-    ValidatorsCountMisMatch,               // -7
-    NotValidator,                          // -8
-    OverFlow,                              // -9
-    NotSupportedUseUpgradeFunctionInstead, // -10
-    ContractNotInitialised,                // -11
-    ArraysDataDoNotMatch,                  // -12
-    ChainIdMismatch,                       // -13
-    OldData,                               // -14
-    WrongContract,                         // -15
-    Expired,                               // -16
-    FeedNotExist,                          // -17
-    Unauthorized,                          // -18
-    /// Upgrade failed because the new module does not exist.
-    FailedUpgradeMissingModule, // -19
-    /// Upgrade failed because the new module does not contain a contract with a
-    /// matching name.
-    FailedUpgradeMissingContract, // -20
-    /// Upgrade failed because the smart contract version of the module is not
-    /// supported.
-    FailedUpgradeUnsupportedModuleVersion, // -21
-    /// Failed to verify signature because data was malformed.
-    MalformedData, // -22
-    /// Failed signature verification: Invalid signature.
-    WrongSignature, // -23
-    MissingAccount,                        // -24
-    EntrypointMismatch,                    // -25
-    NotEnoughSignatures,                   // -26
-    SignaturesOutOfOrder,                  // -27
-    InvalidSigner,                         // -28
-    EmptyAddress,                          // -29
-    DecimalsDoesNotMatch,                  // -30
-}
-
-/// Mapping errors related to logging to CustomContractError.
-impl From<LogError> for CustomContractError {
-    fn from(le: LogError) -> Self {
-        match le {
-            LogError::Full => Self::LogFull,
-            LogError::Malformed => Self::LogMalformed,
-        }
-    }
-}
-
-/// Mapping account signature error to CustomContractError
-impl From<CheckAccountSignatureError> for CustomContractError {
-    fn from(e: CheckAccountSignatureError) -> Self {
-        match e {
-            CheckAccountSignatureError::MissingAccount => Self::MissingAccount,
-            CheckAccountSignatureError::MalformedData => Self::MalformedData,
-        }
-    }
+    InvokeContractError, // -2
+    EmptyAddress,         // -3
+    DecimalsDoesNotMatch, // -4
 }
 
 /// Mapping errors related to contract invocations to CustomContractError.
@@ -182,38 +108,6 @@ impl<T> From<CallContractError<T>> for CustomContractError {
     fn from(_cce: CallContractError<T>) -> Self {
         Self::InvokeContractError
     }
-}
-
-/// Mapping errors related to contract upgrades to CustomContractError.
-impl From<UpgradeError> for CustomContractError {
-    #[inline(always)]
-    fn from(ue: UpgradeError) -> Self {
-        match ue {
-            UpgradeError::MissingModule => Self::FailedUpgradeMissingModule,
-            UpgradeError::MissingContract => Self::FailedUpgradeMissingContract,
-            UpgradeError::UnsupportedModuleVersion => Self::FailedUpgradeUnsupportedModuleVersion,
-        }
-    }
-}
-
-/// Tagged events to be serialized for the event log.
-#[derive(Debug, Serial, SchemaType)]
-#[concordium(repr(u8))]
-enum Event {
-    /// The event tracks the nonce used by the signer of the `PermitMessage`
-    /// whenever the `permit` function is invoked.
-    #[concordium(tag = 0)]
-    LogRegistered(LogRegisteredEvent),
-}
-
-/// The NonceEvent is logged when the `permit` function is invoked. The event
-/// tracks the nonce used by the signer of the `PermitMessage`.
-#[derive(Debug, Serialize, SchemaType, PartialEq, Eq)]
-pub struct LogRegisteredEvent {
-    /// Account that signed the `PermitMessage`.
-    pub destination: ContractAddress,
-    /// The nonce that was used in the `PermitMessage`.
-    pub name: HashSha2256,
 }
 
 /// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
@@ -230,8 +124,7 @@ pub struct InitContractsParamUmbrellaFeedsReader {
 /// Init function that creates a new smart contract.
 #[init(
     contract = "umbrella_feeds_reader",
-    parameter = "InitContractsParamUmbrellaFeedsReader",
-    event = "Event"
+    parameter = "InitContractsParamUmbrellaFeedsReader"
 )]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
@@ -358,18 +251,6 @@ fn latest_round_data<S: HasStateApi>(
         .ok_or(CustomContractError::InvokeContractError)?
         .get()?;
 
-    // TODO
-
-    // if (priceData.timestamp == 0) {
-    //     priceData = _fallbackCall();
-    // }
-
-    // ensure!(
-    //     price_data.timestamp!==
-    //     0,
-    //      CustomContractError::DecimalsDoesNotMatch.into()
-    //  );
-
     Ok(SchemTypeQuinteWrapper(
         U256Wrapper(U256::from_dec_str("0").unwrap()),
         U256Wrapper(U256::from_dec_str(price_data.price.to_string().as_str()).unwrap()),
@@ -379,7 +260,7 @@ fn latest_round_data<S: HasStateApi>(
     ))
 }
 
-/// View function that returns the balance of an validator
+/// The `getPriceData` and the `getPriceDataRaw` have the same logic on Concordium since the native upgrade mechanism on Concordium allows to upgrade of the `UmbrellaFeeds` contract without changing its contract address.
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "getPriceData",
@@ -402,14 +283,10 @@ fn get_price_data<S: HasStateApi>(
         .ok_or(CustomContractError::InvokeContractError)?
         .get()?;
 
-    // TODO
-    // if (priceData.timestamp == 0) {
-    //     priceData = _fallbackCall();
-    // }
-
     Ok(price_data)
 }
 
+/// The `getPriceData` and the `getPriceDataRaw` have the same logic on Concordium since the native upgrade mechanism on Concordium allows to upgrade of the `UmbrellaFeeds` contract without changing its contract address.
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "getPriceDataRaw",
@@ -431,11 +308,6 @@ fn get_price_data_raw<S: HasStateApi>(
     let price_data: PriceData = price_data
         .ok_or(CustomContractError::InvokeContractError)?
         .get()?;
-
-    // TODO
-    // if (priceData.timestamp == 0) {
-    //     return _fallbackCallRaw();
-    // }
 
     Ok(price_data)
 }

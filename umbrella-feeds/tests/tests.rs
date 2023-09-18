@@ -224,7 +224,7 @@ fn setup_chain_and_contract() -> (
 
 #[test]
 fn test_init() {
-    let (chain, initialization, initalization_registry, initialization_staking_bank) =
+    let (chain, initialization, initialization_registry, initialization_staking_bank) =
         setup_chain_and_contract();
     assert_eq!(
         chain.contract_balance(initialization.contract_address),
@@ -236,7 +236,7 @@ fn test_init() {
 /// Permit update operator function.
 #[test]
 fn test_update_operator() {
-    let (mut chain, initialization, initalization_registry, initialization_staking_bank) =
+    let (mut chain, initialization, initialization_registry, initialization_staking_bank) =
         setup_chain_and_contract();
 
     let price_data = PriceData {
@@ -377,7 +377,7 @@ fn test_update_operator() {
 
 #[test]
 fn test_upgrade_without_migration_function() {
-    let (mut chain, initialization, initalization_registry, initialization_staking_bank) =
+    let (mut chain, initialization, initialization_registry, initialization_staking_bank) =
         setup_chain_and_contract();
 
     let input_parameter = ImportContractsParam {
@@ -390,7 +390,7 @@ fn test_upgrade_without_migration_function() {
         Address::Account(ACC_ADDR_OWNER), // Sender (can also be a contract).
         Energy::from(10000),    // Maximum energy allowed for the update.
         UpdateContractPayload {
-            address: initalization_registry.contract_address, // The contract to update.
+            address: initialization_registry.contract_address, // The contract to update.
             receive_name: OwnedReceiveName::new_unchecked("registry.importContracts".into()), // The receive function to call.
             message: OwnedParameter::from_serial(&input_parameter)
                 .expect("`UpgradeParams` should be a valid inut parameter"), // The parameter sent to the contract.
@@ -417,7 +417,7 @@ fn test_upgrade_without_migration_function() {
             Signer::with_one_key(), // Used for specifying the number of signatures.
             ACC_ADDR_OWNER,         // Invoker account.
             Address::Account(ACC_ADDR_OWNER), // Sender (can also be a contract).
-            Energy::from(10000),    // Maximum energy allowed for the update.
+            Energy::from(100000),    // Maximum energy allowed for the update.
             UpdateContractPayload {
                 address: initialization.contract_address, // The contract to update.
                 receive_name: OwnedReceiveName::new_unchecked("umbrella_feeds.upgrade".into()), // The receive function to call.
