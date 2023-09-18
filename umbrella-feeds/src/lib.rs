@@ -67,37 +67,32 @@ enum CustomContractError {
     LogMalformed, // -3
     /// Failed to invoke a contract.
     InvokeContractError, // -4
-    InvalidRequiredSignatures,             // -5
-    ValidatorDoesNotExist,                 // -6
-    ValidatorsCountMisMatch,               // -7
-    NotValidator,                          // -8
-    OverFlow,                              // -9
-    NotSupportedUseUpgradeFunctionInstead, // -10
-    ContractNotInitialised,                // -11
-    ArraysDataDoNotMatch,                  // -12
-    ChainIdMismatch,                       // -13
-    OldData,                               // -14
-    WrongContract,                         // -15
-    Expired,                               // -16
-    FeedNotExist,                          // -17
-    Unauthorized,                          // -18
+    InvalidRequiredSignatures,             // -5                     
+    NotSupportedUseUpgradeFunctionInstead, // -6
+    ArraysDataDoNotMatch,                  // -7
+    ChainIdMismatch,                       // -8
+    OldData,                               // -9
+    WrongContract,                         // -10
+    Expired,                               // -11
+    FeedNotExist,                          // -12
+    Unauthorized,                          // -13
     /// Upgrade failed because the new module does not exist.
-    FailedUpgradeMissingModule, // -19
+    FailedUpgradeMissingModule, // -14
     /// Upgrade failed because the new module does not contain a contract with a
     /// matching name.
-    FailedUpgradeMissingContract, // -20
+    FailedUpgradeMissingContract, // -15
     /// Upgrade failed because the smart contract version of the module is not
     /// supported.
-    FailedUpgradeUnsupportedModuleVersion, // -21
+    FailedUpgradeUnsupportedModuleVersion, // -16
     /// Failed to verify signature because data was malformed.
-    MalformedData, // -22
+    MalformedData, // -17
     /// Failed signature verification: Invalid signature.
-    WrongSignature, // -23
-    MissingAccount,                        // -24
-    EntrypointMismatch,                    // -25
-    NotEnoughSignatures,                   // -26
-    SignaturesOutOfOrder,                  // -27
-    InvalidSigner,                         // -28
+    WrongSignature, // -18
+    MissingAccount,                        // -19
+    EntrypointMismatch,                    // -20
+    NotEnoughSignatures,                   // -21
+    SignaturesOutOfOrder,                  // -22
+    InvalidSigner,                         // -23
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -139,26 +134,6 @@ impl From<UpgradeError> for CustomContractError {
     }
 }
 
-/// Tagged events to be serialized for the event log.
-#[derive(Debug, Serial, SchemaType)]
-#[concordium(repr(u8))]
-enum Event {
-    /// The event tracks the nonce used by the signer of the `PermitMessage`
-    /// whenever the `permit` function is invoked.
-    #[concordium(tag = 0)]
-    LogRegistered(LogRegisteredEvent),
-}
-
-/// The NonceEvent is logged when the `permit` function is invoked. The event
-/// tracks the nonce used by the signer of the `PermitMessage`.
-#[derive(Debug, Serialize, SchemaType, PartialEq, Eq)]
-pub struct LogRegisteredEvent {
-    /// Account that signed the `PermitMessage`.
-    pub destination: ContractAddress,
-    /// The nonce that was used in the `PermitMessage`.
-    pub name: HashSha2256,
-}
-
 /// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
 /// for the public key/nonce of a given account.
 #[derive(Debug, Serialize, SchemaType)]
@@ -172,8 +147,7 @@ pub struct InitContractsParam {
 /// Init function that creates a new smart contract.
 #[init(
     contract = "umbrella_feeds",
-    parameter = "InitContractsParam",
-    event = "Event"
+    parameter = "InitContractsParam"
 )]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,

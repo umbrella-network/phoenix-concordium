@@ -82,17 +82,6 @@ pub struct PriceData {
     pub price: u128,
 }
 
-impl PriceData {
-    fn default() -> PriceData {
-        PriceData {
-            data: 0,
-            heartbeat: 0,
-            timestamp: 0,
-            price: 0,
-        }
-    }
-}
-
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 struct State<S: HasStateApi> {
@@ -113,40 +102,16 @@ enum CustomContractError {
     LogMalformed, // -3
     /// Failed to invoke a contract.
     InvokeContractError, // -4
-    InvalidRequiredSignatures,             // -5
-    ValidatorDoesNotExist,                 // -6
-    ValidatorsCountMisMatch,               // -7
-    NotValidator,                          // -8
-    OverFlow,                              // -9
-    NotSupportedUseUpgradeFunctionInstead, // -10
-    ContractNotInitialised,                // -11
-    ArraysDataDoNotMatch,                  // -12
-    ChainIdMismatch,                       // -13
-    OldData,                               // -14
-    WrongContract,                         // -15
-    Expired,                               // -16
-    FeedNotExist,                          // -17
-    Unauthorized,                          // -18
     /// Upgrade failed because the new module does not exist.
-    FailedUpgradeMissingModule, // -19
+    FailedUpgradeMissingModule, // -5
     /// Upgrade failed because the new module does not contain a contract with a
     /// matching name.
-    FailedUpgradeMissingContract, // -20
+    FailedUpgradeMissingContract, // -6
     /// Upgrade failed because the smart contract version of the module is not
     /// supported.
-    FailedUpgradeUnsupportedModuleVersion, // -21
-    /// Failed to verify signature because data was malformed.
-    MalformedData, // -22
-    /// Failed signature verification: Invalid signature.
-    WrongSignature, // -23
-    MissingAccount,                        // -24
-    EntrypointMismatch,                    // -25
-    NotEnoughSignatures,                   // -26
-    SignaturesOutOfOrder,                  // -27
-    InvalidSigner,                         // -28
-    EmptyAddress,                          // -29
-    DecimalsDoesNotMatch,                  // -30
-    NameNotRegistered,
+    FailedUpgradeUnsupportedModuleVersion, // -7
+    EmptyAddress,      // -8
+    NameNotRegistered, // -9
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -155,16 +120,6 @@ impl From<LogError> for CustomContractError {
         match le {
             LogError::Full => Self::LogFull,
             LogError::Malformed => Self::LogMalformed,
-        }
-    }
-}
-
-/// Mapping account signature error to CustomContractError
-impl From<CheckAccountSignatureError> for CustomContractError {
-    fn from(e: CheckAccountSignatureError) -> Self {
-        match e {
-            CheckAccountSignatureError::MissingAccount => Self::MissingAccount,
-            CheckAccountSignatureError::MalformedData => Self::MalformedData,
         }
     }
 }
