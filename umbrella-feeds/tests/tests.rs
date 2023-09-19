@@ -8,7 +8,7 @@ use concordium_std::{
 };
 use concordium_std::{Deserial, HashSha2256};
 use primitive_types::U256;
-use registry::ImportContractsParam;
+use registry::{AtomicUpdateParam, AtomicUpdateParams, ImportContractsParam};
 use staking_bank::{InitContractsParamStakingBank, U256Wrapper};
 use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams, UpgradeParams};
 
@@ -407,9 +407,12 @@ fn test_upgrade_without_migration_function() {
         )
         .expect("`Contract version2` deployment should always succeed");
 
-    let input_parameter = UpgradeParams {
-        module: deployment.module_reference,
-        migrate: None,
+    let input_parameter = AtomicUpdateParams {
+        entries: vec![AtomicUpdateParam {
+            module: deployment.module_reference,
+            migrate: None,
+            contract_address: initialization.contract_address,
+        }],
     };
 
     let update = chain
@@ -417,10 +420,10 @@ fn test_upgrade_without_migration_function() {
             Signer::with_one_key(), // Used for specifying the number of signatures.
             ACC_ADDR_OWNER,         // Invoker account.
             Address::Account(ACC_ADDR_OWNER), // Sender (can also be a contract).
-            Energy::from(100000),    // Maximum energy allowed for the update.
+            Energy::from(100000),   // Maximum energy allowed for the update.
             UpdateContractPayload {
-                address: initialization.contract_address, // The contract to update.
-                receive_name: OwnedReceiveName::new_unchecked("umbrella_feeds.upgrade".into()), // The receive function to call.
+                address: initialization_registry.contract_address, // The contract to update.
+                receive_name: OwnedReceiveName::new_unchecked("registry.atomicUpdate".into()), // The receive function to call.
                 message: OwnedParameter::from_serial(&input_parameter)
                     .expect("`UpgradeParams` should be a valid inut parameter"), // The parameter sent to the contract.
                 amount: Amount::from_ccd(0), // Sending the contract 0 CCD.

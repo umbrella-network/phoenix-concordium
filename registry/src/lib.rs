@@ -17,15 +17,15 @@ struct State<S: HasStateApi> {
 enum CustomContractError {
     /// Failed parsing the parameter.
     #[from(ParseError)]
-    ParseParams,
+    ParseParams, // -1
     /// Failed logging: Log is full.
-    LogFull,
+    LogFull, // -2
     /// Failed logging: Log is malformed.
-    LogMalformed,
-    NameNotRegistered,
-    UnauthorizedAccount,
+    LogMalformed, // -3
+    NameNotRegistered, // -4
+    UnauthorizedAccount, // -5
     /// Failed to invoke a contract.
-    InvokeContractError,
+    InvokeContractError, // -6
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -97,7 +97,8 @@ pub struct ImportAddressesParam {
     pub entries: Vec<ImportAddressParam>,
 }
 
-///
+/// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
+/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include a reference to the `UmbrellaFeeds` contract.
 #[receive(
     contract = "registry",
     name = "importAddresses",
@@ -144,7 +145,8 @@ pub struct ImportContractsParam {
     pub entries: Vec<ContractAddress>,
 }
 
-///
+/// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
+/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include a reference to the `UmbrellaFeeds` contract.
 #[receive(
     contract = "registry",
     name = "importContracts",
@@ -208,11 +210,40 @@ fn import_contracts<S: HasStateApi>(
     Ok(())
 }
 
+/// The parameter type for the contract function `permit`.
+/// Takes a signature, the signer, and the message that was signed.
+#[derive(Serialize, SchemaType)]
+pub struct AtomicUpdateParam {
+    /// The new module reference.
+    pub module: ModuleReference,
+    /// Optional entrypoint to call in the new module after upgrade.
+    pub migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
+    pub contract_address: ContractAddress,
+}
+
+/// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
+/// for the public key/nonce of a given account.
+#[derive(Serialize, SchemaType)]
+#[concordium(transparent)]
+pub struct AtomicUpdateParams {
+    /// List of
+    #[concordium(size_length = 2)]
+    pub entries: Vec<AtomicUpdateParam>,
+}
+
+#[derive(Debug, Serialize, SchemaType)]
+pub struct UpgradeParams {
+    /// The new module reference.
+    pub module: ModuleReference,
+    /// Optional entrypoint to call in the new module after upgrade.
+    pub migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
+}
+
 ///
 #[receive(
     contract = "registry",
     name = "atomicUpdate",
-    parameter = "ImportContractsParam",
+    parameter = "AtomicUpdateParams",
     error = "CustomContractError",
     enable_logger,
     mutable
@@ -228,19 +259,24 @@ fn atomic_update<S: HasStateApi>(
         CustomContractError::UnauthorizedAccount
     );
 
-    let import_contracts: ImportContractsParam = ctx.parameter_cursor().get()?;
+    let import_contracts: AtomicUpdateParams = ctx.parameter_cursor().get()?;
 
     for new_contract in import_contracts.entries {
-        // register() hook
-        host.invoke_contract(
-            &new_contract,
-            &Parameter::empty(),
-            EntrypointName::new_unchecked("register"),
+        let upgrade_params = UpgradeParams {
+            module: new_contract.module,
+            migrate: new_contract.migrate,
+        };
+
+        //  `upgradeNatively()` hook; this can be used to natively upgrade the contract
+        host.invoke_contract::<UpgradeParams>(
+            &new_contract.contract_address,
+            &upgrade_params,
+            EntrypointName::new_unchecked("upgradeNatively"),
             Amount::zero(),
         )?;
 
         let name = host.invoke_contract_read_only(
-            &new_contract,
+            &new_contract.contract_address,
             &Parameter::empty(),
             EntrypointName::new_unchecked("getName"),
             Amount::zero(),
@@ -250,7 +286,10 @@ fn atomic_update<S: HasStateApi>(
             .ok_or(CustomContractError::InvokeContractError)?
             .get()?;
 
-        let old_contract = host.state_mut().registry.insert(name, new_contract);
+        let old_contract = host
+            .state_mut()
+            .registry
+            .insert(name, new_contract.contract_address);
 
         // Only if another `old_contract` was already registered, execute the `unregister` hook.
         if let Some(old_contract) = old_contract {
@@ -266,7 +305,7 @@ fn atomic_update<S: HasStateApi>(
         // Log LogRegistered event
         logger.log(&Event::LogRegistered(LogRegisteredEvent {
             name,
-            destination: new_contract,
+            destination: new_contract.contract_address,
         }))?;
     }
 

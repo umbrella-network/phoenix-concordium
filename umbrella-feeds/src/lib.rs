@@ -3,7 +3,6 @@
 //! # Umbrella feeds
 use concordium_std::*;
 use core::fmt::Debug;
-use registry::ImportContractsParam;
 
 #[cfg(feature = "u256_amount")]
 use primitive_types::U256;
@@ -67,7 +66,7 @@ enum CustomContractError {
     LogMalformed, // -3
     /// Failed to invoke a contract.
     InvokeContractError, // -4
-    InvalidRequiredSignatures,             // -5                     
+    InvalidRequiredSignatures,             // -5
     NotSupportedUseUpgradeFunctionInstead, // -6
     ArraysDataDoNotMatch,                  // -7
     ChainIdMismatch,                       // -8
@@ -145,10 +144,7 @@ pub struct InitContractsParam {
 }
 
 /// Init function that creates a new smart contract.
-#[init(
-    contract = "umbrella_feeds",
-    parameter = "InitContractsParam"
-)]
+#[init(contract = "umbrella_feeds", parameter = "InitContractsParam")]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     state_builder: &mut StateBuilder<S>,
@@ -200,60 +196,27 @@ pub struct UpgradeParams {
 /// function.
 #[receive(
     contract = "umbrella_feeds",
-    name = "upgrade",
+    name = "upgradeNatively",
     parameter = "UpgradeParams",
     error = "CustomContractError",
     low_level
 )]
-fn contract_upgrade<S: HasStateApi>(
+fn upgrade_natively<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<S>,
 ) -> Result<(), CustomContractError> {
     // Read the top-level contract state.
     let state: State<S> = host.state().read_root()?;
 
-    let owner = host.invoke_contract_read_only(
-        &state.registry,
-        &Parameter::empty(),
-        EntrypointName::new_unchecked("owner"),
-        Amount::zero(),
-    )?;
-
-    let owner = owner
-        .ok_or(CustomContractError::InvokeContractError)?
-        .get()?;
-
-    // Check that only the owner is authorized to upgrade the smart contract.
-    ensure_eq!(ctx.sender(), owner, CustomContractError::Unauthorized);
-
-    // if (_prices[keccak256(abi.encodePacked(_name))].timestamp == 0 && DEPLOYED_AT + 3 days > block.timestamp) {
-    //     revert ContractNotInitialised();
-    // }
-
-    // Check that
-    // ensure_eq!(
-    //     state
-    //         .deployed_at
-    //         .checked_add(Duration::from_days(3))
-    //         .ok_or(CustomContractError::OverFlow),
-    //     Ok(ctx.metadata().block_time()),
-    //     CustomContractError::ContractNotInitialised
-    // );
+    // Only the registry can upgrade this contract.
+    ensure_eq!(
+        ctx.sender(),
+        concordium_std::Address::Contract(state.registry),
+        CustomContractError::Unauthorized
+    );
 
     // Parse the parameter.
     let param: UpgradeParams = ctx.parameter_cursor().get()?;
-
-    let parameter = ImportContractsParam {
-        entries: vec![ctx.self_address()],
-    };
-
-    // Update contract in registry
-    host.invoke_contract_raw(
-        &state.registry,
-        to_bytes(&parameter).as_slice().try_into().unwrap(),
-        EntrypointName::new_unchecked("importContracts"),
-        Amount::zero(),
-    )?;
 
     // Trigger the upgrade.
     host.upgrade(param.module)?;
@@ -525,9 +488,7 @@ fn get_name<S: HasStateApi>(
     _host: &impl HasHost<State<S>, StateApiType = S>,
     crypto_primitives: &impl HasCryptoPrimitives,
 ) -> ReceiveResult<HashSha2256> {
-    let key_hash = crypto_primitives
-        .hash_sha2_256("UmbrellaFeeds".as_bytes())
-        .0;
+    let key_hash = crypto_primitives.hash_sha2_256(NAME.as_bytes()).0;
 
     Ok(HashSha2256(key_hash))
 }
@@ -754,4 +715,13 @@ fn decimals<S: HasStateApi>(
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<u8> {
     Ok(host.state().decimals)
+}
+
+/// View function that returns the balance of an validator
+#[receive(contract = "umbrella_feeds", name = "unregister")]
+fn unregister<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    _host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<()> {
+    Ok(())
 }
