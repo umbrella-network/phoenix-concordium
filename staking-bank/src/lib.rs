@@ -4,8 +4,6 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-use common_types::{U256Wrapper, U256};
-
 const VALIDATOR_0: AccountAddress = AccountAddress([0u8; 32]);
 const VALIDATOR_1: AccountAddress = AccountAddress([1u8; 32]);
 
@@ -26,9 +24,9 @@ const VALIDATOR_14: AccountAddress = AccountAddress([14u8; 32]);
 
 #[derive(Serial, Deserial, Debug, SchemaType)]
 struct State {
-    number_of_validators: U256Wrapper,
-    total_supply: U256Wrapper,
-    one: U256Wrapper,
+    number_of_validators: u8,
+    total_supply: u64,
+    one: u64,
 }
 
 /// Your smart contract errors.
@@ -110,7 +108,7 @@ fn _addresses() -> Vec<AccountAddress> {
 #[derive(Serialize, SchemaType)]
 #[concordium(transparent)]
 pub struct InitContractsParamStakingBank {
-    pub validators_count: U256Wrapper,
+    pub validators_count: u8,
 }
 
 /// Init function that creates a new smart contract.
@@ -121,13 +119,13 @@ fn init<S: HasStateApi>(
 ) -> InitResult<State> {
     let param: InitContractsParamStakingBank = ctx.parameter_cursor().get()?;
 
-    let one = U256Wrapper(U256::from_dec_str("1000000000000000000").unwrap());
+    let one = 1000000000000000000u64;
 
     let list = _addresses();
 
     ensure_eq!(
         list.len(),
-        param.validators_count.0.as_usize(),
+        param.validators_count as usize,
         CustomContractError::ValidatorsCountMisMatch.into()
     );
 
@@ -140,7 +138,7 @@ fn init<S: HasStateApi>(
 
     Ok(State {
         number_of_validators: param.validators_count,
-        total_supply: param.validators_count * one,
+        total_supply: param.validators_count as u64 * one,
         one,
     })
 }
@@ -149,34 +147,30 @@ fn init<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "NUMBER_OF_VALIDATORS",
-    return_value = "U256Wrapper"
+    return_value = "u8"
 )]
 fn number_of_validators<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<U256Wrapper> {
+) -> ReceiveResult<u8> {
     Ok(host.state().number_of_validators)
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `TOTAL_SUPPLY`.
-#[receive(
-    contract = "staking_bank",
-    name = "TOTAL_SUPPLY",
-    return_value = "U256Wrapper"
-)]
+#[receive(contract = "staking_bank", name = "TOTAL_SUPPLY", return_value = "u64")]
 fn total_supply_1<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<U256Wrapper> {
+) -> ReceiveResult<u64> {
     Ok(host.state().total_supply)
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `ONE`.
-#[receive(contract = "staking_bank", name = "ONE", return_value = "U256Wrapper")]
+#[receive(contract = "staking_bank", name = "ONE", return_value = "u64")]
 fn one<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<U256Wrapper> {
+) -> ReceiveResult<u64> {
     Ok(host.state().one)
 }
 
@@ -227,18 +221,18 @@ fn validators<S: HasStateApi>(
     contract = "staking_bank",
     name = "balances",
     parameter = "AccountAddress",
-    return_value = "U256Wrapper"
+    return_value = "u64"
 )]
 fn balances<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<U256Wrapper> {
+) -> ReceiveResult<u64> {
     let _account: AccountAddress = ctx.parameter_cursor().get()?;
 
     if _is_validator(_account) {
         Ok(host.state().one)
     } else {
-        Ok(U256Wrapper(U256::from_dec_str("0").unwrap()))
+        Ok(0u64)
     }
 }
 
@@ -270,12 +264,12 @@ fn verify_validators<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "getNumberOfValidators",
-    return_value = "U256Wrapper"
+    return_value = "u8"
 )]
 fn get_number_of_validators<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<U256Wrapper> {
+) -> ReceiveResult<u8> {
     Ok(host.state().number_of_validators)
 }
 
@@ -296,16 +290,21 @@ fn get_addresses<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "getBalances",
-    return_value = "Vec<U256Wrapper>"
+    return_value = "Vec<u64>"
 )]
 fn get_balances<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<Vec<U256Wrapper>> {
+) -> ReceiveResult<Vec<u64>> {
     let one = host.state().one;
     let number_of_validators = host.state().number_of_validators;
 
-    Ok(vec![one, number_of_validators])
+    let mut balances = vec![];
+    for _i in 0..number_of_validators {
+        balances.push(one)
+    }
+
+    Ok(balances)
 }
 
 /// View function that returns the balance of an validator
@@ -328,31 +327,27 @@ fn addresses<S: HasStateApi>(
     contract = "staking_bank",
     name = "balanceOf",
     parameter = "AccountAddress",
-    return_value = "U256Wrapper"
+    return_value = "u64"
 )]
 fn balance_of<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<U256Wrapper> {
+) -> ReceiveResult<u64> {
     let _account: AccountAddress = ctx.parameter_cursor().get()?;
 
     if _is_validator(_account) {
         Ok(host.state().one)
     } else {
-        Ok(U256Wrapper(U256::from_dec_str("0").unwrap()))
+        Ok(0u64)
     }
 }
 
 /// View function that returns the balance of an validator
-#[receive(
-    contract = "staking_bank",
-    name = "totalSupply",
-    return_value = "U256Wrapper"
-)]
+#[receive(contract = "staking_bank", name = "totalSupply", return_value = "u64")]
 fn total_supply_2<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<U256Wrapper> {
+) -> ReceiveResult<u64> {
     Ok(host.state().total_supply)
 }
 
@@ -435,7 +430,7 @@ mod tests {
         let mut state_builder = TestStateBuilder::new();
 
         let parameter_bytes = to_bytes(&InitContractsParamStakingBank {
-            validators_count: U256Wrapper(U256::from_dec_str("15").unwrap()),
+            validators_count: 15u8,
         });
         ctx.set_parameter(&parameter_bytes);
 

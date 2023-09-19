@@ -4,19 +4,12 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-#[cfg(feature = "u256_amount")]
-use primitive_types::U256;
-
 /// The baseurl for the token metadata, gets appended with the token ID as hex
 /// encoding before emitted in the TokenMetadata event.
 const NAME: &str = "UmbrellaFeeds";
 
 /// Does not exist on Concordium but kept for consistency.
 const CHAIN_ID: u16 = 0;
-
-#[derive(Debug, Copy, Clone, PartialOrd, Ord, PartialEq, Eq, Default)]
-#[repr(transparent)]
-pub struct U256Wrapper(pub U256);
 
 #[derive(Serialize, SchemaType, Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PriceData {
@@ -27,7 +20,7 @@ pub struct PriceData {
     /// Using u64 instead of u24 here (different to solidity original smart contracts)
     pub heartbeat: u64,
     /// @dev timestamp: price time, at this time validators run consensus
-    pub timestamp: u32,
+    pub timestamp: Timestamp,
     /// @dev price
     pub price: u128,
 }
@@ -37,7 +30,7 @@ impl PriceData {
         PriceData {
             data: 0,
             heartbeat: 0,
-            timestamp: 0,
+            timestamp: Timestamp::from_timestamp_millis(0),
             price: 0,
         }
     }
@@ -623,12 +616,12 @@ fn get_price<S: HasStateApi>(
     contract = "umbrella_feeds",
     name = "getPriceTimestamp",
     parameter = "HashSha2256",
-    return_value = "u32"
+    return_value = "Timestamp"
 )]
 fn get_price_timestamp<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<u32> {
+) -> ReceiveResult<Timestamp> {
     let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
 
     let price_data = host
@@ -642,7 +635,7 @@ fn get_price_timestamp<S: HasStateApi>(
 }
 
 #[derive(SchemaType, Serial)]
-pub struct SchemTypeTripleWrapper(u128, u32, u64);
+pub struct SchemTypeTripleWrapper(u128, Timestamp, u64);
 
 /// View function that returns the balance of an validator
 #[receive(

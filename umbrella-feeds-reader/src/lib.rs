@@ -4,8 +4,6 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-use common_types::{U256Wrapper, U256};
-
 #[derive(Serialize, SchemaType, Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PriceData {
     /// @dev this is placeholder, that can be used for some additional data
@@ -15,7 +13,7 @@ pub struct PriceData {
     /// Using u64 instead of u24 here (different to solidity original smart contracts)
     pub heartbeat: u64,
     /// @dev timestamp: price time, at this time validators run consensus
-    pub timestamp: u32,
+    pub timestamp: Timestamp,
     /// @dev price
     pub price: u128,
 }
@@ -158,15 +156,9 @@ fn decimals<S: HasStateApi>(
 }
 
 #[derive(SchemaType, Serial, Deserial, Debug, PartialEq, Eq)]
-pub struct SchemTypeQuinteWrapper(
-    pub U256Wrapper,
-    pub U256Wrapper,
-    pub U256Wrapper,
-    pub U256Wrapper,
-    pub U256Wrapper,
-);
+pub struct SchemTypeQuinteWrapper(pub u8, pub u128, pub u8, pub Timestamp, pub u8);
 
-/// View function that returns the balance of an validator
+// View function that returns the balance of an validator
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "latestRoundData",
@@ -190,11 +182,11 @@ fn latest_round_data<S: HasStateApi>(
         .get()?;
 
     Ok(SchemTypeQuinteWrapper(
-        U256Wrapper(U256::from_dec_str("0").unwrap()),
-        U256Wrapper(U256::from_dec_str(price_data.price.to_string().as_str()).unwrap()),
-        U256Wrapper(U256::from_dec_str("0").unwrap()),
-        U256Wrapper(U256::from_dec_str(price_data.timestamp.to_string().as_str()).unwrap()),
-        U256Wrapper(U256::from_dec_str("0").unwrap()),
+        0u8,
+        price_data.price,
+        0u8,
+        price_data.timestamp,
+        0u8,
     ))
 }
 

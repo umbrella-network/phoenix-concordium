@@ -26,9 +26,6 @@ path = "../staking-bank/"
 [dependencies.umbrella-feeds]
 path = "../umbrella-feeds/"
 
-[dependencies.common-types]
-path = "../common-types/"
-
 [dependencies]
 concordium-std = {version = "8.0", default-features = false}
 

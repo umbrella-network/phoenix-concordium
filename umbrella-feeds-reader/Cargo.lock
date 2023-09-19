@@ -213,14 +213,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "common-types"
-version = "1.0.0"
-dependencies = [
- "concordium-std",
- "primitive-types",
-]
-
-[[package]]
 name = "concordium-contracts-common"
 version = "8.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1401,7 +1393,6 @@ dependencies = [
 name = "staking-bank"
 version = "1.0.0"
 dependencies = [
- "common-types",
  "concordium-std",
 ]
 
@@ -1562,7 +1553,6 @@ dependencies = [
 name = "umbrella-feeds"
 version = "1.0.0"
 dependencies = [
- "common-types",
  "concordium-std",
  "primitive-types",
  "registry",
@@ -1573,7 +1563,6 @@ dependencies = [
 name = "umbrella-feeds-reader"
 version = "1.0.0"
 dependencies = [
- "common-types",
  "concordium-smart-contract-testing",
  "concordium-std",
  "ed25519-dalek",

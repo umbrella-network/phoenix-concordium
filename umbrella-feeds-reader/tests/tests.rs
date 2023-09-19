@@ -1,6 +1,5 @@
 use std::collections::BTreeMap;
 
-use common_types::{U256,U256Wrapper};
 use concordium_smart_contract_testing::AccountAccessStructure;
 use concordium_smart_contract_testing::*;
 use concordium_std::HashSha2256;
@@ -21,17 +20,17 @@ const KEY_HASH: HashSha2256 = HashSha2256([
 ]);
 
 const SIGNATURE_1: SignatureEd25519 = SignatureEd25519([
-    189, 152, 44, 34, 186, 100, 205, 30, 179, 165, 189, 160, 222, 181, 141, 211, 40, 16, 39, 157,
-    133, 223, 86, 89, 119, 124, 107, 189, 82, 141, 116, 40, 9, 246, 230, 45, 235, 191, 51, 165, 44,
-    93, 75, 46, 84, 25, 196, 26, 121, 102, 175, 172, 186, 68, 159, 184, 88, 93, 48, 126, 83, 2, 80,
-    15,
+    154, 75, 154, 59, 91, 175, 118, 168, 44, 240, 7, 241, 37, 176, 226, 13, 101, 229, 87, 254, 198,
+    43, 162, 180, 238, 212, 193, 2, 124, 152, 138, 219, 102, 125, 138, 85, 228, 4, 79, 80, 105, 86,
+    39, 227, 132, 93, 2, 52, 246, 156, 14, 110, 249, 191, 5, 213, 0, 34, 182, 219, 215, 146, 162,
+    8,
 ]);
 
 const SIGNATURE_2: SignatureEd25519 = SignatureEd25519([
-    246, 255, 94, 113, 247, 234, 107, 234, 171, 161, 187, 166, 178, 254, 207, 190, 62, 58, 27, 73,
-    93, 50, 138, 133, 251, 134, 108, 147, 177, 135, 6, 103, 189, 254, 232, 248, 23, 118, 167, 202,
-    229, 219, 88, 107, 45, 23, 216, 52, 133, 167, 61, 67, 197, 91, 252, 116, 67, 198, 118, 180,
-    204, 171, 181, 11,
+    37, 108, 93, 17, 90, 192, 78, 226, 244, 224, 236, 133, 119, 226, 5, 191, 81, 152, 56, 186, 7,
+    92, 93, 132, 73, 84, 194, 226, 123, 39, 30, 72, 96, 232, 135, 27, 18, 46, 240, 133, 5, 14, 1,
+    87, 119, 65, 169, 211, 236, 12, 210, 211, 221, 141, 141, 209, 248, 166, 255, 71, 39, 52, 210,
+    4,
 ]);
 
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
@@ -138,7 +137,7 @@ fn setup_chain_and_contract() -> (
         .expect("`staking_bank.wasm.v1` deployment should always succeed");
 
     let input_parameter = InitContractsParamStakingBank {
-        validators_count: U256Wrapper(U256::from_dec_str("15").unwrap()),
+        validators_count: 15u8,
     };
 
     let initialization_staking_bank = chain
@@ -242,7 +241,7 @@ fn test_update_operator() {
     let price_data = PriceData {
         data: 7,
         heartbeat: 12,
-        timestamp: 9,
+        timestamp: Timestamp::from_timestamp_millis(9),
         price: 4,
     };
 
@@ -605,13 +604,8 @@ fn test_update_operator() {
 
     println!("{:?}", stored_price_data);
 
-    let expected_price_data = SchemTypeQuinteWrapper(
-        U256Wrapper(U256::from_dec_str("0").unwrap()),
-        U256Wrapper(U256::from_dec_str(price_data.price.to_string().as_str()).unwrap()),
-        U256Wrapper(U256::from_dec_str("0").unwrap()),
-        U256Wrapper(U256::from_dec_str(price_data.timestamp.to_string().as_str()).unwrap()),
-        U256Wrapper(U256::from_dec_str("0").unwrap()),
-    );
+    let expected_price_data =
+        SchemTypeQuinteWrapper(0u8, price_data.price, 0u8, price_data.timestamp, 0u8);
 
     assert_eq!(stored_price_data, expected_price_data);
 }
