@@ -22,7 +22,7 @@ enum CustomContractError {
     LogFull, // -2
     /// Failed logging: Log is malformed.
     LogMalformed, // -3
-    NameNotRegistered, // -4
+    NameNotRegistered,   // -4
     UnauthorizedAccount, // -5
     /// Failed to invoke a contract.
     InvokeContractError, // -6
@@ -153,36 +153,18 @@ pub struct ImportContractsParam {
     parameter = "ImportContractsParam",
     error = "CustomContractError",
     enable_logger,
-    mutable,
-    crypto_primitives
+    mutable
 )]
 fn import_contracts<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
     logger: &mut impl HasLogger,
-    crypto_primitives: &impl HasCryptoPrimitives,
 ) -> Result<(), CustomContractError> {
-    // Only the owner or the owner via the `UmbrellaFeeds` contract can upgrade the contract addresses
-    if ctx.sender() != host.state().owner {
-        // Calculate the key hash.
-        let key_hash = crypto_primitives
-            .hash_sha2_256("UmbrellaFeeds".as_bytes())
-            .0;
-
-        let umbrella_feeds_contract = host
-            .state()
-            .registry
-            .get(&HashSha2256(key_hash))
-            .map(|s| *s)
-            .ok_or(CustomContractError::NameNotRegistered)?;
-
-        // Only the owner or the owner via the `UmbrellaFeeds` contract can upgrade the contract addresses
-        ensure!(
-            ctx.sender() == host.state().owner
-                || ctx.sender() == concordium_std::Address::Contract(umbrella_feeds_contract),
-            CustomContractError::UnauthorizedAccount
-        );
-    }
+    ensure_eq!(
+        ctx.sender(),
+        host.state().owner,
+        CustomContractError::UnauthorizedAccount
+    );
 
     let import_contracts: ImportContractsParam = ctx.parameter_cursor().get()?;
 

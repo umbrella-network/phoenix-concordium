@@ -1,5 +1,6 @@
 use std::collections::BTreeMap;
 
+use common_types::U256Wrapper;
 use concordium_smart_contract_testing::*;
 use concordium_smart_contract_testing::{AccountAccessStructure, *};
 use concordium_std::{
@@ -9,8 +10,8 @@ use concordium_std::{
 use concordium_std::{Deserial, HashSha2256};
 use primitive_types::U256;
 use registry::{AtomicUpdateParam, AtomicUpdateParams, ImportContractsParam};
-use staking_bank::{InitContractsParamStakingBank, U256Wrapper};
-use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams, UpgradeParams};
+use staking_bank::InitContractsParamStakingBank;
+use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);

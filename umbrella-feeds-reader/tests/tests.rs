@@ -1,15 +1,15 @@
 use std::collections::BTreeMap;
 
+use common_types::{U256,U256Wrapper};
 use concordium_smart_contract_testing::AccountAccessStructure;
 use concordium_smart_contract_testing::*;
 use concordium_std::HashSha2256;
 use concordium_std::{
     AccountSignatures, CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp,
 };
-use primitive_types::U256;
 use registry::{AtomicUpdateParam, AtomicUpdateParams, ImportContractsParam};
-use staking_bank::{InitContractsParamStakingBank, U256Wrapper};
-use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams, UpgradeParams};
+use staking_bank::InitContractsParamStakingBank;
+use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams};
 use umbrella_feeds_reader::{InitContractsParamUmbrellaFeedsReader, SchemTypeQuinteWrapper};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
@@ -606,15 +606,11 @@ fn test_update_operator() {
     println!("{:?}", stored_price_data);
 
     let expected_price_data = SchemTypeQuinteWrapper(
-        umbrella_feeds_reader::U256Wrapper(U256::from_dec_str("0").unwrap()),
-        umbrella_feeds_reader::U256Wrapper(
-            U256::from_dec_str(price_data.price.to_string().as_str()).unwrap(),
-        ),
-        umbrella_feeds_reader::U256Wrapper(U256::from_dec_str("0").unwrap()),
-        umbrella_feeds_reader::U256Wrapper(
-            U256::from_dec_str(price_data.timestamp.to_string().as_str()).unwrap(),
-        ),
-        umbrella_feeds_reader::U256Wrapper(U256::from_dec_str("0").unwrap()),
+        U256Wrapper(U256::from_dec_str("0").unwrap()),
+        U256Wrapper(U256::from_dec_str(price_data.price.to_string().as_str()).unwrap()),
+        U256Wrapper(U256::from_dec_str("0").unwrap()),
+        U256Wrapper(U256::from_dec_str(price_data.timestamp.to_string().as_str()).unwrap()),
+        U256Wrapper(U256::from_dec_str("0").unwrap()),
     );
 
     assert_eq!(stored_price_data, expected_price_data);

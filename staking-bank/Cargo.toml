@@ -9,17 +9,15 @@ authors = [ "Concordium <developers@concordium.com>" ]
 description = "An oracle system"
 
 [features]
-default = ["std","u256_amount"]
+default = ["std"]
 std = ["concordium-std/std"]
 wee_alloc = ["concordium-std/wee_alloc"]
-u256_amount = []
-
-[dependencies.primitive-types]
-version = "0.11"
-default-features = false
 
 [dependencies]
 concordium-std = {version = "8.0", default-features = false}
+
+[dependencies.common-types]
+path = "../common-types/"
 
 [lib]
 crate-type=["cdylib", "rlib"]

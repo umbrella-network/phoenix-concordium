@@ -1,7 +1,7 @@
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package]
-name = "umbrella-feeds"
+name = "common-types"
 version = "1.0.0"
 edition = "2021"
 license = "MPL-2.0"
@@ -13,19 +13,6 @@ default = ["std","u256_amount"]
 std = ["concordium-std/std"]
 wee_alloc = ["concordium-std/wee_alloc"]
 u256_amount = []
-
-[dev-dependencies]
-concordium-smart-contract-testing = "3.0"
-ed25519-dalek = "1.0.1"
-
-[dependencies.registry]
-path = "../registry/"
-
-[dependencies.staking-bank]
-path = "../staking-bank/"
-
-[dependencies.common-types]
-path = "../common-types/"
 
 [dependencies.primitive-types]
 version = "0.11"
