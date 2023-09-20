@@ -129,7 +129,7 @@ pub struct ImportAddressesParams {
 }
 
 /// The owner can import new contract addresses and override old addresses (if they exist under the provided name) by providing the new contract address and its key/name.
-/// This method can be used for contracts that for some reason do not have the `getName` method.
+/// This entry point can be used for contracts that for some reason do not have the `getName` entry point.
 /// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
 /// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 #[receive(
@@ -245,7 +245,7 @@ pub struct UpgradeParams {
     pub migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
 }
 
-/// This method ensures, that the old and the new contracts are aware of their states in the registry by calling the `upgradeNatively` and the `unregister` hooks.
+/// This entry point ensures, that the old and the new contracts are aware of their states in the registry by calling the `upgradeNatively` and the `unregister` hooks.
 /// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use this function to natively upgrade the `UmbrellaFeeds` contract.
 /// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 #[receive(
@@ -274,7 +274,7 @@ fn atomic_update<S: HasStateApi>(
         migrate: params.migrate,
     };
 
-    //  `upgradeNatively()` hook; this can be used to natively upgrade the contract
+    // Execute the `upgradeNatively()` hook
     host.invoke_contract::<UpgradeParams>(
         &params.contract_address,
         &upgrade_params,
@@ -298,9 +298,9 @@ fn atomic_update<S: HasStateApi>(
         .registry
         .insert(name, params.contract_address);
 
-    // Only if another `old_contract` was already registered, execute the `unregister` hook.
+    // Only if another `old_contract` was already registered, execute the `unregister` hook
     if let Some(old_contract) = old_contract {
-        // unRegister() hook
+        // Execute the `unRegister()` hook
         host.invoke_contract(
             &old_contract,
             &Parameter::empty(),
@@ -318,7 +318,8 @@ fn atomic_update<S: HasStateApi>(
     Ok(())
 }
 
-/// View function that returns contract_address from key hash.
+/// View function that returns the contract_address from a key hash.
+/// Equivalent to the `registry`/`getAddress` entry points.
 #[receive(
     contract = "registry",
     name = "requireAndGetAddress",
@@ -341,7 +342,9 @@ fn require_and_get_address<S: HasStateApi>(
     Ok(contract_address)
 }
 
-/// Equivalent to solidity's getter function which is automatically created from the public storage variable `registry`.
+/// Equivalent to solidity's getter function (which is automatically created in solidity from the public storage variable `registry`).
+/// View function that returns the contract_address from a key hash.
+/// Equivalent to the `requireAndGetAddress`/`getAddress` entry points.
 #[receive(
     contract = "registry",
     name = "registry",
@@ -364,7 +367,10 @@ fn registry<S: HasStateApi>(
     Ok(contract_address)
 }
 
-/// View function that returns contract_address from key hash.
+/// View function that returns the contract_address from a key hash.
+/// Equivalent to the `requireAndGetAddress`/`registry` entry points.
+/// ATTENTION: The original solidity function returned address(0x0) instead of throwing an error when the key hash was not registered in this contract.
+/// Returning address(0x0) is typically for solidity but not for Rust/Concordium where address(0x0) has no special meaning, hence this function also throws.
 #[receive(
     contract = "registry",
     name = "getAddress",
@@ -387,7 +393,8 @@ fn get_address<S: HasStateApi>(
     Ok(contract_address)
 }
 
-/// View function that returns contract_address from key string.
+/// View function that returns the contract_address from a human-readable string name.
+/// Throws if contract name is not registered.
 #[receive(
     contract = "registry",
     name = "getAddressByString",
@@ -415,7 +422,7 @@ fn get_address_by_string<S: HasStateApi>(
     Ok(contract_address)
 }
 
-/// View function that hash from a key string.
+/// Helper function to convert a human-readable string name to the key hash.
 #[receive(
     contract = "registry",
     name = "stringToHashSha2256",
@@ -436,7 +443,7 @@ fn string_to_hash_sha2256<S: HasStateApi>(
     Ok(HashSha2256(key_hash))
 }
 
-/// View function that hash from a key string.
+/// View function that returns the owner address.
 #[receive(contract = "registry", name = "owner", return_value = "Address")]
 fn owner<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
@@ -445,6 +452,7 @@ fn owner<S: HasStateApi>(
     Ok(host.state().owner)
 }
 
+/// The owner can transfer the ownership to address(0x0). This means, the owner renounces the ownerhip of this contract.
 #[receive(
     contract = "registry",
     name = "renounceOwnership",
@@ -463,18 +471,21 @@ fn renounce_ownership<S: HasStateApi>(
         CustomContractError::UnauthorizedAccount
     );
 
+    let new_owner: Address = Address::from(AccountAddress([0u8; 32]));
+
     let previous_owner = host.state_mut().owner;
-    host.state_mut().owner = Address::from(AccountAddress([0u8; 32]));
+    host.state_mut().owner = new_owner;
 
     // Log OwnershipTransferred event
     logger.log(&Event::OwnershipTransferred(OwnershipTransferredEvent {
-        new_owner: Address::from(AccountAddress([0u8; 32])),
+        new_owner,
         previous_owner,
     }))?;
 
     Ok(())
 }
 
+/// The owner can transfer the ownership to a new address.
 #[receive(
     contract = "registry",
     name = "transferOwnership",

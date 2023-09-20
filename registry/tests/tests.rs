@@ -301,4 +301,330 @@ fn test_import_contracts() {
         contract_address,
         initialization_dummy_contract.contract_address
     );
+
+    // Checking that contract address was registered correctly in registry.
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "registry.getAddressByString".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&String::from("MyName"))
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query contract address");
+
+    let contract_address: ContractAddress =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(
+        contract_address,
+        initialization_dummy_contract.contract_address
+    );
+}
+
+/// Test getter functions.
+#[test]
+fn test_getter_functions() {
+    let (mut chain, initialization_registry) = setup_chain_and_contract();
+
+    let umbrella_feeds_contract = ContractAddress {
+        index: 8,
+        subindex: 0,
+    };
+
+    let input_parameter = ImportAddressesParams {
+        entries: vec![ImportAddressesParam {
+            name: KEY_HASH_1,
+            destination: umbrella_feeds_contract,
+        }],
+    };
+
+    // Invoking 'importAddresses'.
+
+    let _update = chain
+        .contract_update(
+            Signer::with_one_key(), // Used for specifying the number of signatures.
+            ACC_ADDR_OWNER,         // Invoker account.
+            Address::Account(ACC_ADDR_OWNER), // Sender (can also be a contract).
+            Energy::from(10000),    // Maximum energy allowed for the update.
+            UpdateContractPayload {
+                address: initialization_registry.contract_address, // The contract to update.
+                receive_name: OwnedReceiveName::new_unchecked("registry.importAddresses".into()), // The receive function to call.
+                message: OwnedParameter::from_serial(&input_parameter)
+                    .expect("`input_parameter` should be a valid inut parameter"), // The parameter sent to the contract.
+                amount: Amount::from_ccd(0), // Sending the contract 0 CCD.
+            },
+        )
+        .expect("Should be able to importAddresses");
+
+    // Checking `getAddress` function.
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
+                message: OwnedParameter::from_serial(&KEY_HASH_1)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query contract address");
+
+    let contract_address: ContractAddress =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(contract_address, umbrella_feeds_contract);
+
+    // Checking `getAddress` function throws for invalid key hash.
+
+    let _invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
+                message: OwnedParameter::from_serial(&KEY_HASH_2)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .is_err();
+
+    // Checking `registry` function.
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("registry.registry".to_string()),
+                message: OwnedParameter::from_serial(&KEY_HASH_1)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query contract address");
+
+    let contract_address: ContractAddress =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(contract_address, umbrella_feeds_contract);
+
+    // Checking `registry` function throws for invalid key hash.
+
+    let _invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("registry.registry".to_string()),
+                message: OwnedParameter::from_serial(&KEY_HASH_2)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .is_err();
+
+    // Checking `requireAndGetAddress` function.
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "registry.requireAndGetAddress".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&KEY_HASH_1)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query contract address");
+
+    let contract_address: ContractAddress =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(contract_address, umbrella_feeds_contract);
+
+    // Checking `requireAndGetAddress` function throws for invalid key hash.
+
+    let _invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "registry.requireAndGetAddress".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&KEY_HASH_2)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .is_err();
+}
+
+/// Test owner functionalities
+#[test]
+fn test_owner_functionalities() {
+    let (mut chain, initialization_registry) = setup_chain_and_contract();
+
+    // Checking `owner`.
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("registry.owner".to_string()),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Should be able to query owner address");
+
+    let owner: Address = from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(owner, Address::from(ACC_ADDR_OWNER));
+
+    // Invoking 'transferOwnership'.
+
+    let update = chain
+        .contract_update(
+            Signer::with_one_key(), // Used for specifying the number of signatures.
+            ACC_ADDR_OWNER,         // Invoker account.
+            Address::Account(ACC_ADDR_OWNER), // Sender (can also be a contract).
+            Energy::from(10000),    // Maximum energy allowed for the update.
+            UpdateContractPayload {
+                address: initialization_registry.contract_address, // The contract to update.
+                receive_name: OwnedReceiveName::new_unchecked("registry.transferOwnership".into()), // The receive function to call.
+                message: OwnedParameter::from_serial(&Address::from(OTHER_ACCOUNT))
+                    .expect("`input_parameter` should be a valid inut parameter"), // The parameter sent to the contract.
+                amount: Amount::from_ccd(0), // Sending the contract 0 CCD.
+            },
+        )
+        .expect("Should be able to transferOwnership");
+
+    // Checking logged event.
+    let events: Vec<(ContractAddress, &[ContractEvent])> = update.events().collect();
+    let event = &events[0].1[0];
+
+    // Checking event tag.
+    assert_eq!(event.as_ref()[0], 1, "Event tag is wrong");
+
+    // Removing the tag byte at the beginning of the event.
+    let event_struct: OwnershipTransferredEvent =
+        from_bytes(&event.as_ref()[1..]).expect("Tag removal should work");
+
+    assert_eq!(
+        event_struct,
+        OwnershipTransferredEvent {
+            new_owner: Address::from(OTHER_ACCOUNT),
+            previous_owner: Address::from(ACC_ADDR_OWNER),
+        },
+        "OwnershipTransferredEvent event is wrong"
+    );
+
+    // Checking `owner`.
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("registry.owner".to_string()),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Should be able to query owner address");
+
+    let owner: Address = from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(owner, Address::from(OTHER_ACCOUNT));
+
+    // Invoking 'renounceOwnership'.
+
+    let update = chain
+        .contract_update(
+            Signer::with_one_key(), // Used for specifying the number of signatures.
+            OTHER_ACCOUNT,          // Invoker account.
+            Address::Account(OTHER_ACCOUNT), // Sender (can also be a contract).
+            Energy::from(10000),    // Maximum energy allowed for the update.
+            UpdateContractPayload {
+                address: initialization_registry.contract_address, // The contract to update.
+                receive_name: OwnedReceiveName::new_unchecked("registry.renounceOwnership".into()), // The receive function to call.
+                message: OwnedParameter::from_serial(&Address::from(OTHER_ACCOUNT))
+                    .expect("`input_parameter` should be a valid inut parameter"), // The parameter sent to the contract.
+                amount: Amount::from_ccd(0), // Sending the contract 0 CCD.
+            },
+        )
+        .expect("Should be able to transferOwnership");
+
+    // Checking logged event.
+    let events: Vec<(ContractAddress, &[ContractEvent])> = update.events().collect();
+    let event = &events[0].1[0];
+
+    // Checking event tag.
+    assert_eq!(event.as_ref()[0], 1, "Event tag is wrong");
+
+    // Removing the tag byte at the beginning of the event.
+    let event_struct: OwnershipTransferredEvent =
+        from_bytes(&event.as_ref()[1..]).expect("Tag removal should work");
+
+    assert_eq!(
+        event_struct,
+        OwnershipTransferredEvent {
+            new_owner: Address::from(AccountAddress([0u8; 32])),
+            previous_owner: Address::from(OTHER_ACCOUNT),
+        },
+        "OwnershipTransferredEvent event is wrong"
+    );
+
+    // Checking `owner`.
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("registry.owner".to_string()),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Should be able to query owner address");
+
+    let owner: Address = from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(owner, Address::from(AccountAddress([0u8; 32])));
 }
