@@ -1,32 +1,45 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! # Registry
+//! # Contracts Registry
+//!
+//! The protocol uses this registry to fetch current contract addresses.
+//! This contract has an owner.
+//! The owner can:
+//! - Register contracts into this registry with the `importAddresses` and the `importContracts` entry points.
+//! - Natively upgrade the `UmbrellaFeeds` contract via this registry contract by invoking the `atomicUpdate` entry point.
+//! - Replace all other contract addresses registered (that don't have the entry points `upgradeNatively` implemented) by invoking the `importAddresses` and the `importContracts` entry points.
+//! ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
+//! Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 use concordium_std::*;
 use core::fmt::Debug;
 
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 struct State<S: HasStateApi> {
+    // The owner of this contract. It can register/replace/atomically upgrade contract addresses in this registry.
     owner: Address,
-    // name => contract address
+    // Mapping from key to contract address. The key/name of a contract is calculated by hashing its human-readable name.
     registry: StateMap<HashSha2256, ContractAddress, S>,
 }
 
-/// Your smart contract errors.
+/// All smart contract errors.
 #[derive(Debug, PartialEq, Eq, Reject, Serial, SchemaType)]
 enum CustomContractError {
     /// Failed parsing the parameter.
     #[from(ParseError)]
     ParseParams, // -1
-    /// Failed logging: Log is full.
+    /// Failed to log because the log is full.
     LogFull, // -2
-    /// Failed logging: Log is malformed.
-    LogMalformed, // -3
-    NameNotRegistered,   // -4
+    /// Failed to log because the log is malformed.
+    LogMalformed, // -3'
+    /// Failed to retrieve a contract address because the contract is not registered in this registry.
+    NameNotRegistered, // -4
+    /// Failed because the invoker is not authorized to invoke the entry point.
     UnauthorizedAccount, // -5
     /// Failed to invoke a contract.
     InvokeContractError, // -6
-    InvalidOwner,        // -7
+    /// Failed to provide a valid address as the owner.
+    InvalidOwner, // -7
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -50,79 +63,77 @@ impl<T> From<CallContractError<T>> for CustomContractError {
 #[derive(Debug, Serial, SchemaType)]
 #[concordium(repr(u8))]
 enum Event {
-    /// The event tracks the nonce used by the signer of the `PermitMessage`
-    /// whenever the `permit` function is invoked.
+    /// The event tracks whenever a new contract address gets registered/atomically upgraded in this registry (potentially replacing an old contract address).
     #[concordium(tag = 0)]
     LogRegistered(LogRegisteredEvent),
+    /// The event tracks whenever the contract ownership gets transferred.
     #[concordium(tag = 1)]
     OwnershipTransferred(OwnershipTransferredEvent),
 }
 
-/// The NonceEvent is logged when the `permit` function is invoked. The event
-/// tracks the nonce used by the signer of the `PermitMessage`.
+/// The LogRegisteredEvent is logged when a new contract address gets registered/atomically upgraded in this registry (potentially replacing an old contract address).
 #[derive(Debug, Serialize, SchemaType, PartialEq, Eq)]
 pub struct LogRegisteredEvent {
-    /// Account that signed the `PermitMessage`.
+    /// The new contract address that got registered.
     pub destination: ContractAddress,
-    /// The nonce that was used in the `PermitMessage`.
+    /// The key/name of a contract.
     pub name: HashSha2256,
 }
 
-/// The NonceEvent is logged when the `permit` function is invoked. The event
-/// tracks the nonce used by the signer of the `PermitMessage`.
+/// The OwnershipTransferredEvent is logged when the contract ownership gets transferred.
 #[derive(Debug, Serialize, SchemaType, PartialEq, Eq)]
 pub struct OwnershipTransferredEvent {
-    /// Account that signed the `PermitMessage`.
+    /// The previous owner's address.
     pub previous_owner: Address,
-    /// The nonce that was used in the `PermitMessage`.
+    /// The new owner's address.
     pub new_owner: Address,
 }
 
-/// Init function that creates a new smart contract.
+/// The init function that creates a new registry smart contract.
 #[init(contract = "registry", event = "Event", enable_logger)]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     state_builder: &mut StateBuilder<S>,
     logger: &mut impl HasLogger,
 ) -> InitResult<State<S>> {
+    let owner = Address::from(ctx.init_origin());
+
     // Log OwnershipTransferred event
     logger.log(&Event::OwnershipTransferred(OwnershipTransferredEvent {
-        new_owner: Address::from(ctx.init_origin()),
+        new_owner: owner,
         previous_owner: Address::from(AccountAddress([0u8; 32])),
     }))?;
 
     Ok(State {
         registry: state_builder.new_map(),
-        owner: Address::from(ctx.init_origin()),
+        owner,
     })
 }
 
-/// The parameter type for the contract function `permit`.
-/// Takes a signature, the signer, and the message that was signed.
+/// Part of the parameter type for the contract function `importAddresses`.
 #[derive(Serialize, SchemaType)]
-pub struct ImportAddressParam {
-    ///
+pub struct ImportAddressesParam {
+    /// The new contract address that got registered.
     pub name: HashSha2256,
-    ///
+    /// The key/name of a contract.
     pub destination: ContractAddress,
 }
 
-/// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
-/// for the public key/nonce of a given account.
+/// The parameter type for the contract function `importAddresses`.
 #[derive(Serialize, SchemaType)]
 #[concordium(transparent)]
-pub struct ImportAddressesParam {
-    /// List of
+pub struct ImportAddressesParams {
+    /// List of ImportAddressParam
     #[concordium(size_length = 2)]
-    pub entries: Vec<ImportAddressParam>,
+    pub entries: Vec<ImportAddressesParam>,
 }
 
 /// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
-/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include a reference to the `UmbrellaFeeds` contract.
+/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 #[receive(
     contract = "registry",
     name = "importAddresses",
-    parameter = "ImportAddressesParam",
+    parameter = "ImportAddressesParams",
     error = "CustomContractError",
     enable_logger,
     mutable
@@ -138,7 +149,7 @@ fn import_addresses<S: HasStateApi>(
         CustomContractError::UnauthorizedAccount
     );
 
-    let import_contracts: ImportAddressesParam = ctx.parameter_cursor().get()?;
+    let import_contracts: ImportAddressesParams = ctx.parameter_cursor().get()?;
 
     for entry in import_contracts.entries {
         host.state_mut()
@@ -166,7 +177,7 @@ pub struct ImportContractsParam {
 }
 
 /// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
-/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include a reference to the `UmbrellaFeeds` contract.
+/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 #[receive(
     contract = "registry",
     name = "importContracts",
