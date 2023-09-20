@@ -1,11 +1,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 //! # Umbrella feeds
-//! 
-//! ATTENTION: Keep the `unregister`/`upgradeNatively` entry points in this contract at all time and make sure their logic can be 
-//! executed successfully via an invoke to the `atomicUpdate` entry point in the`registry` contract. Otherwise you will not be able to 
-//! natively upgrade this contract via the `registry` contract anymore. 
-//! Using the native upgradability mechanism for this contract is necessary to not break the `UmbrellaFeedsReader` contracts 
+//!
+//! ATTENTION: Keep the `unregister`/`upgradeNatively` entry points in this contract at all time and make sure their logic can be
+//! executed successfully via an invoke to the `atomicUpdate` entry point in the`registry` contract. Otherwise you will not be able to
+//! natively upgrade this contract via the `registry` contract anymore.
+//! Using the native upgradability mechanism for this contract is necessary to not break the `UmbrellaFeedsReader` contracts
 //! which include references to the `UmbrellaFeeds` contract.
 use concordium_std::*;
 use core::fmt::Debug;

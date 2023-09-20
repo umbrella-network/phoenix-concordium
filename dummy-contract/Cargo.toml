@@ -1,7 +1,7 @@
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [package]
-name = "registry"
+name = "dummy-contract"
 version = "1.0.0"
 edition = "2021"
 license = "MPL-2.0"
@@ -13,14 +13,12 @@ default = ["std"]
 std = ["concordium-std/std"]
 wee_alloc = ["concordium-std/wee_alloc"]
 
+[dependencies.primitive-types]
+version = "0.11"
+default-features = false
+
 [dependencies]
 concordium-std = {version = "8.0", default-features = false}
-
-[dev-dependencies.dummy-contract]
-path = "../dummy-contract/"
-
-[dev-dependencies]
-concordium-smart-contract-testing = "3.0"
 
 [lib]
 crate-type=["cdylib", "rlib"]

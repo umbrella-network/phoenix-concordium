@@ -6,7 +6,7 @@ use concordium_std::HashSha2256;
 use concordium_std::{
     AccountSignatures, CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp,
 };
-use registry::{AtomicUpdateParam, AtomicUpdateParams, ImportContractsParam};
+use registry::{AtomicUpdateParam, ImportContractsParam};
 use staking_bank::InitContractsParamStakingBank;
 use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams};
 use umbrella_feeds_reader::{InitContractsParamUmbrellaFeedsReader, SchemTypeQuinteWrapper};
@@ -509,12 +509,10 @@ fn test_update_operator() {
         )
         .expect("`Contract version2` deployment should always succeed");
 
-    let input_parameter = AtomicUpdateParams {
-        entries: vec![AtomicUpdateParam {
-            module: deployment.module_reference,
-            migrate: None,
-            contract_address: initialization.contract_address,
-        }],
+    let input_parameter = AtomicUpdateParam {
+        module: deployment.module_reference,
+        migrate: None,
+        contract_address: initialization.contract_address,
     };
 
     let update = chain

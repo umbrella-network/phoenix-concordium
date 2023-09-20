@@ -8,7 +8,7 @@ use concordium_std::{
 };
 use concordium_std::{Deserial, HashSha2256};
 use primitive_types::U256;
-use registry::{AtomicUpdateParam, AtomicUpdateParams, ImportContractsParam};
+use registry::{AtomicUpdateParam, ImportContractsParam};
 use staking_bank::InitContractsParamStakingBank;
 use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams};
 
@@ -407,12 +407,10 @@ fn test_upgrade_without_migration_function() {
         )
         .expect("`Contract version2` deployment should always succeed");
 
-    let input_parameter = AtomicUpdateParams {
-        entries: vec![AtomicUpdateParam {
-            module: deployment.module_reference,
-            migrate: None,
-            contract_address: initialization.contract_address,
-        }],
+    let input_parameter = AtomicUpdateParam {
+        module: deployment.module_reference,
+        migrate: None,
+        contract_address: initialization.contract_address,
     };
 
     let update = chain
