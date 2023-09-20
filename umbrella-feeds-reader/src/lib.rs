@@ -49,7 +49,7 @@ impl<T> From<CallContractError<T>> for CustomContractError {
 /// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
 /// for the public key/nonce of a given account.
 #[derive(Debug, Serialize, SchemaType)]
-pub struct InitContractsParamUmbrellaFeedsReader {
+pub struct InitParamsUmbrellaFeedsReader {
     pub registry: ContractAddress,
     pub umbrella_feeds: ContractAddress,
     pub decimals: u8,
@@ -60,13 +60,13 @@ pub struct InitContractsParamUmbrellaFeedsReader {
 /// Init function that creates a new smart contract.
 #[init(
     contract = "umbrella_feeds_reader",
-    parameter = "InitContractsParamUmbrellaFeedsReader"
+    parameter = "InitParamsUmbrellaFeedsReader"
 )]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     _state_builder: &mut StateBuilder<S>,
 ) -> InitResult<State> {
-    let param: InitContractsParamUmbrellaFeedsReader = ctx.parameter_cursor().get()?;
+    let param: InitParamsUmbrellaFeedsReader = ctx.parameter_cursor().get()?;
 
     ensure!(
         param.registry

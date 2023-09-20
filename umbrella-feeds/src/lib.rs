@@ -135,7 +135,7 @@ impl From<UpgradeError> for CustomContractError {
 /// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
 /// for the public key/nonce of a given account.
 #[derive(Debug, Serialize, SchemaType)]
-pub struct InitContractsParam {
+pub struct InitParamsUmbrellaFeeds {
     pub registry: ContractAddress,
     pub required_signatures: u16,
     pub staking_bank: ContractAddress,
@@ -143,12 +143,12 @@ pub struct InitContractsParam {
 }
 
 /// Init function that creates a new smart contract.
-#[init(contract = "umbrella_feeds", parameter = "InitContractsParam")]
+#[init(contract = "umbrella_feeds", parameter = "InitParamsUmbrellaFeeds")]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     state_builder: &mut StateBuilder<S>,
 ) -> InitResult<State<S>> {
-    let param: InitContractsParam = ctx.parameter_cursor().get()?;
+    let param: InitParamsUmbrellaFeeds = ctx.parameter_cursor().get()?;
 
     ensure!(
         param.required_signatures != 0,

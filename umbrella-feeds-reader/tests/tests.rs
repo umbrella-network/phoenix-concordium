@@ -7,9 +7,9 @@ use concordium_std::{
     AccountSignatures, CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp,
 };
 use registry::{AtomicUpdateParam, ImportContractsParam};
-use staking_bank::InitContractsParamStakingBank;
-use umbrella_feeds::{InitContractsParam, Message, PriceData, UpdateParams};
-use umbrella_feeds_reader::{InitContractsParamUmbrellaFeedsReader, SchemTypeQuinteWrapper};
+use staking_bank::InitParamsStakingBank;
+use umbrella_feeds::{InitParamsUmbrellaFeeds, Message, PriceData, UpdateParams};
+use umbrella_feeds_reader::{InitParamsUmbrellaFeedsReader, SchemTypeQuinteWrapper};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(100000000000);
@@ -136,7 +136,7 @@ fn setup_chain_and_contract() -> (
         )
         .expect("`staking_bank.wasm.v1` deployment should always succeed");
 
-    let input_parameter = InitContractsParamStakingBank {
+    let input_parameter = InitParamsStakingBank {
         validators_count: 15u8,
     };
 
@@ -191,7 +191,7 @@ fn setup_chain_and_contract() -> (
         )
         .expect("`Umbrella_feeds.wasm.v1` deployment should always succeed");
 
-    let input_parameter_2 = InitContractsParam {
+    let input_parameter_2 = InitParamsUmbrellaFeeds {
         registry: initialization_registry.contract_address,
         required_signatures: 2,
         staking_bank: initialization_staking_bank.contract_address,
@@ -384,7 +384,7 @@ fn test_update_operator() {
         )
         .expect("`Umbrella_feeds_reader.wasm.v1` deployment should always succeed");
 
-    let input_parameter_3 = InitContractsParamUmbrellaFeedsReader {
+    let input_parameter_3 = InitParamsUmbrellaFeedsReader {
         registry: initialization_registry.contract_address,
         umbrella_feeds: initialization.contract_address,
         key: KEY_HASH,

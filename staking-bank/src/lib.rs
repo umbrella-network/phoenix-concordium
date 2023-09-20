@@ -7,7 +7,7 @@ use core::fmt::Debug;
 const VALIDATOR_0: AccountAddress = AccountAddress([0u8; 32]);
 const VALIDATOR_1: AccountAddress = AccountAddress([1u8; 32]);
 
-// external order is based on validators submits on AVAX for Apr 2023
+// External order is based on validators submits on AVAX in Apr 2023.
 const VALIDATOR_2: AccountAddress = AccountAddress([2u8; 32]);
 const VALIDATOR_3: AccountAddress = AccountAddress([3u8; 32]);
 const VALIDATOR_4: AccountAddress = AccountAddress([4u8; 32]);
@@ -22,28 +22,32 @@ const VALIDATOR_12: AccountAddress = AccountAddress([12u8; 32]);
 const VALIDATOR_13: AccountAddress = AccountAddress([13u8; 32]);
 const VALIDATOR_14: AccountAddress = AccountAddress([14u8; 32]);
 
-#[derive(Serial, Deserial, Debug, SchemaType)]
-struct State {
-    number_of_validators: u8,
-    total_supply: u64,
-    one: u64,
+#[derive(Serial, Deserial, Debug, SchemaType, PartialEq, Eq)]
+pub struct State {
+    /// The number of validators.
+    pub number_of_validators: u8,
+    /// total supply = number_of_validators * one.
+    pub total_supply: u64,
+    /// one = 1 * 10^18.
+    pub one: u64,
 }
 
-/// Your smart contract errors.
+/// All smart contract errors.
 #[derive(Debug, PartialEq, Eq, Reject, Serial, SchemaType)]
 enum CustomContractError {
-    /// Failed parsing the parameter.
+    /// Failed to parse the parameter.
     #[from(ParseError)]
     ParseParams, // -1
-    /// Failed logging: Log is full.
+    /// Failed to log because the log is full.
     LogFull, // -2
-    /// Failed logging: Log is malformed.
+    /// Failed to log because the log is malformed.
     LogMalformed, // -3
     /// Failed to invoke a contract.
     InvokeContractError, // -4
-    ValidatorDoesNotExist,   // -5
-    ValidatorsCountMisMatch, // -6
-    NotValidator,            // -7
+    /// Failed because the validators count is not consistent.
+    ValidatorsCountMisMatch, // -5
+    /// Failed because the address is not a validator.
+    NotValidator, // -6
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -63,7 +67,7 @@ impl<T> From<CallContractError<T>> for CustomContractError {
     }
 }
 
-/// Get _isValidator
+/// Internal function that returns a boolean if the given address is a validator.
 fn _is_validator(_validator: AccountAddress) -> bool {
     _validator == VALIDATOR_0
         || _validator == VALIDATOR_1
@@ -82,7 +86,7 @@ fn _is_validator(_validator: AccountAddress) -> bool {
         || _validator == VALIDATOR_14
 }
 
-/// Get _addresses
+/// Internal function that returns all validators.
 fn _addresses() -> Vec<AccountAddress> {
     vec![
         VALIDATOR_0,
@@ -103,21 +107,20 @@ fn _addresses() -> Vec<AccountAddress> {
     ]
 }
 
-/// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
-/// for the public key/nonce of a given account.
+/// The parameter type for the contract init function.
 #[derive(Serialize, SchemaType)]
 #[concordium(transparent)]
-pub struct InitContractsParamStakingBank {
+pub struct InitParamsStakingBank {
     pub validators_count: u8,
 }
 
 /// Init function that creates a new smart contract.
-#[init(contract = "staking_bank", parameter = "InitContractsParamStakingBank")]
+#[init(contract = "staking_bank", parameter = "InitParamsStakingBank")]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     _state_builder: &mut StateBuilder<S>,
 ) -> InitResult<State> {
-    let param: InitContractsParamStakingBank = ctx.parameter_cursor().get()?;
+    let param: InitParamsStakingBank = ctx.parameter_cursor().get()?;
 
     let one = 1000000000000000000u64;
 
@@ -183,7 +186,7 @@ fn view<'b, S: HasStateApi>(
     Ok(host.state())
 }
 
-/// View function that returns validators
+/// View function that returns validator's URL (as well as the inputted account address). The function throws an error if the address is not a validator.
 #[receive(
     contract = "staking_bank",
     name = "validators",
@@ -212,11 +215,11 @@ fn validators<S: HasStateApi>(
         VALIDATOR_12 => Ok((id, "http://5.161.78.230:3000".to_string())),
         VALIDATOR_13 => Ok((id, "https://umbnode.blockchainliverpool.com".to_string())),
         VALIDATOR_14 => Ok((id, "https://umb-api.staking.rocks".to_string())),
-        _ => bail!(CustomContractError::ValidatorDoesNotExist.into()),
+        _ => bail!(CustomContractError::NotValidator.into()),
     }
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the balance of an validator.
 #[receive(
     contract = "staking_bank",
     name = "balances",
@@ -227,16 +230,16 @@ fn balances<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
-    let _account: AccountAddress = ctx.parameter_cursor().get()?;
+    let account: AccountAddress = ctx.parameter_cursor().get()?;
 
-    if _is_validator(_account) {
+    if _is_validator(account) {
         Ok(host.state().one)
     } else {
         Ok(0u64)
     }
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns a boolean if an account address is an validator.
 #[receive(
     contract = "staking_bank",
     name = "verifyValidators",
@@ -249,18 +252,16 @@ fn verify_validators<S: HasStateApi>(
 ) -> ReceiveResult<bool> {
     let _accounts: Vec<AccountAddress> = ctx.parameter_cursor().get()?;
 
-    let mut return_value = true;
-
-    for _validator in _accounts {
-        if !_is_validator(_validator) {
-            return_value = false;
+    for validator in _accounts {
+        if !_is_validator(validator) {
+            return Ok(false);
         }
     }
 
-    Ok(return_value)
+    Ok(true)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the number of validtors.
 #[receive(
     contract = "staking_bank",
     name = "getNumberOfValidators",
@@ -273,7 +274,7 @@ fn get_number_of_validators<S: HasStateApi>(
     Ok(host.state().number_of_validators)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns all validator addresses.
 #[receive(
     contract = "staking_bank",
     name = "getAddresses",
@@ -286,7 +287,7 @@ fn get_addresses<S: HasStateApi>(
     Ok(_addresses())
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the balances of validators.
 #[receive(
     contract = "staking_bank",
     name = "getBalances",
@@ -307,7 +308,7 @@ fn get_balances<S: HasStateApi>(
     Ok(balances)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the address of a validator from an index.
 #[receive(
     contract = "staking_bank",
     name = "addresses",
@@ -322,7 +323,7 @@ fn addresses<S: HasStateApi>(
     Ok(_addresses()[<u8 as Into<usize>>::into(index)])
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the balance of an validator. This is to follow ERC20 interface.
 #[receive(
     contract = "staking_bank",
     name = "balanceOf",
@@ -342,7 +343,7 @@ fn balance_of<S: HasStateApi>(
     }
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the total supply value. This is to follow ERC20 interface.
 #[receive(contract = "staking_bank", name = "totalSupply", return_value = "u64")]
 fn total_supply_2<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
@@ -351,7 +352,7 @@ fn total_supply_2<S: HasStateApi>(
     Ok(host.state().total_supply)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the key hash of this contract.
 #[receive(
     contract = "staking_bank",
     name = "getName",
@@ -368,82 +369,42 @@ fn get_name<S: HasStateApi>(
     Ok(HashSha2256(key_hash))
 }
 
-/// View function that returns the balance of an validator
-#[receive(contract = "staking_bank", name = "register")]
-fn register<S: HasStateApi>(
+/// The parameter type for the contract function `upgrade`.
+#[derive(Debug, Serialize, SchemaType)]
+pub struct UpgradeParams {
+    /// The new module reference.
+    pub module: ModuleReference,
+    /// Optional entrypoint to call in the new module after upgrade.
+    pub migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
+}
+
+// Hook function to enable `atomicUpdate` via the registry contract.
+#[receive(
+    contract = "staking_bank",
+    name = "upgradeNatively",
+    parameter = "UpgradeParams",
+    error = "CustomContractError",
+    low_level
+)]
+fn upgrade_natively<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<()> {
-    // there are no requirements atm
+    _host: &mut impl HasHost<S>,
+) -> Result<(), CustomContractError> {
+
+    // There are no requirements atm
+
     Ok(())
 }
 
-/// View function that returns the balance of an validator
+// Hook function to enable `atomicUpdate` via the registry contract.
 #[receive(contract = "staking_bank", name = "unregister")]
 fn unregister<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<()> {
-    // there are no requirements atm
+
+    // There are no requirements atm
+
     Ok(())
 }
 
-/// View function that returns the balance of an validator
-#[receive(
-    contract = "staking_bank",
-    name = "_addresses",
-    return_value = "Vec<AccountAddress>"
-)]
-fn addresses_external<S: HasStateApi>(
-    _ctx: &impl HasReceiveContext,
-    _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<Vec<AccountAddress>> {
-    Ok(_addresses())
-}
-
-/// View function that returns the balance of an validator
-#[receive(
-    contract = "staking_bank",
-    name = "_isValidator",
-    parameter = "AccountAddress",
-    return_value = "bool"
-)]
-fn is_validator<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
-    _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<bool> {
-    let _account: AccountAddress = ctx.parameter_cursor().get()?;
-
-    Ok(_is_validator(_account))
-}
-
-#[concordium_cfg_test]
-mod tests {
-    use super::*;
-    use test_infrastructure::*;
-
-    #[concordium_test]
-    /// Test that initializing the contract succeeds with some state.
-    fn test_init() {
-        let mut ctx = TestInitContext::empty();
-
-        let mut state_builder = TestStateBuilder::new();
-
-        let parameter_bytes = to_bytes(&InitContractsParamStakingBank {
-            validators_count: 15u8,
-        });
-        ctx.set_parameter(&parameter_bytes);
-
-        let state_result = init(&ctx, &mut state_builder);
-        let initial_state = state_result.expect_report("Contract initialization results in error");
-
-        let ctx = TestReceiveContext::empty();
-
-        let host = TestHost::new(initial_state, state_builder);
-
-        // Call the contract function.
-        let state = view(&ctx, &host);
-
-        println!("{:?}", state.unwrap());
-    }
-}

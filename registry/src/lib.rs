@@ -25,7 +25,7 @@ struct State<S: HasStateApi> {
 /// All smart contract errors.
 #[derive(Debug, PartialEq, Eq, Reject, Serial, SchemaType)]
 enum CustomContractError {
-    /// Failed parsing the parameter.
+    /// Failed to parse the parameter.
     #[from(ParseError)]
     ParseParams, // -1
     /// Failed to log because the log is full.
