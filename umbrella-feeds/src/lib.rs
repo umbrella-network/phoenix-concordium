@@ -2,32 +2,34 @@
 
 //! # Umbrella feeds
 //!
-//! ATTENTION: Keep the `unregister`/`upgradeNatively` entry points in this contract at all time and make sure their logic can be
+//! Main contract for all on-chain data.
+//! Check `UmbrellaFeedsReader` to see how to integrate.
+//!
+//! ATTENTION: Keep the `upgradeNatively`/`unregister` entry points in this contract at all time and make sure their logic can be
 //! executed successfully via an invoke to the `atomicUpdate` entry point in the`registry` contract. Otherwise you will not be able to
 //! natively upgrade this contract via the `registry` contract anymore.
 //! Using the native upgradability mechanism for this contract is necessary to not break the `UmbrellaFeedsReader` contracts
-//! which include references to the `UmbrellaFeeds` contract.
+//! which include references to this `UmbrellaFeeds` contract.
 use concordium_std::*;
 use core::fmt::Debug;
 
-/// The baseurl for the token metadata, gets appended with the token ID as hex
-/// encoding before emitted in the TokenMetadata event.
+/// The name of this contract.
 const NAME: &str = "UmbrellaFeeds";
 
-/// Does not exist on Concordium but kept for consistency.
+/// The concept of a CHAIN_ID does not exist on Concordium but kept for consistency.
 const CHAIN_ID: u16 = 0;
 
 #[derive(Serialize, SchemaType, Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PriceData {
-    /// @dev this is placeholder, that can be used for some additional data
-    /// atm of creating this smart contract, it is only used as marker for removed data (when == type(uint8).max)
+    /// This is a placeholder, that can be used for some additional data.
+    /// It is only used as marker for removed data (when data == u8::MAX) at the moment.
     pub data: u8,
-    /// @dev heartbeat: how often price data will be refreshed in case price stay flat
-    /// Using u64 instead of u24 here (different to solidity original smart contracts)
+    /// The heartbeat specifies how often the price data will be refreshed in case the price stays flat.
+    /// ATTENTION: u64 is used here instead of u24 (different to the original solidity smart contracts).
     pub heartbeat: u64,
-    /// @dev timestamp: price time, at this time validators run consensus
+    /// It is the time the validators run consensus to decide on the pice data.
     pub timestamp: Timestamp,
-    /// @dev price
+    /// The price.
     pub price: u128,
 }
 
@@ -44,53 +46,69 @@ impl PriceData {
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 struct State<S> {
+    /// Contract deployment time.
     deployed_at: Timestamp,
+    /// Registry contract where the list of all addresses of this protocol is stored.
     registry: ContractAddress,
+    /// StakingBank contract where list of validators is stored
     staking_bank: ContractAddress,
+    /// Minimal number of signatures required for accepting price submission (PoA).
     required_signatures: u16,
+    /// Decimals for prices stored in this contract.
     decimals: u8,
-    // name => PriceData
+    /// Map of all prices stored in this contract. It maps from the key to PriceData. The key for the map is the hash of the feed name.
+    /// E.g. for the "ETH-USD" feed, the key will be the hash("ETH-USD").
     prices: StateMap<HashSha2256, PriceData, S>,
 }
 
-/// Your smart contract errors.
+/// All smart contract errors.
 #[derive(Debug, PartialEq, Eq, Reject, Serial, SchemaType)]
 enum CustomContractError {
-    /// Failed parsing the parameter.
+    /// Failed to parse the parameter.
     #[from(ParseError)]
     ParseParams, // -1
-    /// Failed logging: Log is full.
+    /// Failed to log because the log is full.
     LogFull, // -2
-    /// Failed logging: Log is malformed.
+    /// Failed to log because the log is malformed.
     LogMalformed, // -3
     /// Failed to invoke a contract.
     InvokeContractError, // -4
-    InvalidRequiredSignatures,             // -5
-    NotSupportedUseUpgradeFunctionInstead, // -6
-    ArraysDataDoNotMatch,                  // -7
-    ChainIdMismatch,                       // -8
-    OldData,                               // -9
-    WrongContract,                         // -10
-    Expired,                               // -11
-    FeedNotExist,                          // -12
-    Unauthorized,                          // -13
+    /// Failed to provide enough signatures.
+    InvalidRequiredSignatures, // -5
+    /// Failed because the destroy function is not supported.
+    NotSupported, // -6
+    /// Failed to because the chain id is wrong.
+    ChainIdMismatch, // -7
+    /// Failed to because the data is outdated.
+    OldData, // -8
+    /// Failed because it is the wrong contract.
+    WrongContract, // -9
+    /// Failed because the signature is outdated.
+    Expired, // -10
+    /// Failed because the feed does not exist.
+    FeedNotExist, // -11
+    /// Failed because of unauthorized invoke of the entry point.
+    Unauthorized, // -12
     /// Upgrade failed because the new module does not exist.
-    FailedUpgradeMissingModule, // -14
+    FailedUpgradeMissingModule, // -13
     /// Upgrade failed because the new module does not contain a contract with a
     /// matching name.
-    FailedUpgradeMissingContract, // -15
+    FailedUpgradeMissingContract, // -14
     /// Upgrade failed because the smart contract version of the module is not
     /// supported.
-    FailedUpgradeUnsupportedModuleVersion, // -16
+    FailedUpgradeUnsupportedModuleVersion, // -15
     /// Failed to verify signature because data was malformed.
-    MalformedData, // -17
-    /// Failed signature verification: Invalid signature.
-    WrongSignature, // -18
-    MissingAccount,                        // -19
-    EntrypointMismatch,                    // -20
-    NotEnoughSignatures,                   // -21
-    SignaturesOutOfOrder,                  // -22
-    InvalidSigner,                         // -23
+    MalformedData, // -16
+    /// Failed signature verification because of an invalid signature.
+    WrongSignature, // -17
+    /// Failed because the account is missing on the chain.
+    MissingAccount, // -18
+    /// Failed because not enough signatures were provided.
+    NotEnoughSignatures, // -19
+    /// Failed because the signatures are not in order.
+    SignaturesOutOfOrder, // -20
+    /// Failed because one of the given signers is not a validator.
+    InvalidSigner, // -21
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -132,8 +150,7 @@ impl From<UpgradeError> for CustomContractError {
     }
 }
 
-/// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
-/// for the public key/nonce of a given account.
+/// The parameter type for the contract init function.
 #[derive(Debug, Serialize, SchemaType)]
 pub struct InitParamsUmbrellaFeeds {
     pub registry: ContractAddress,
@@ -165,9 +182,9 @@ fn init<S: HasStateApi>(
     })
 }
 
-/// The parameter type for the contract function `upgrade`.
+/// The parameter type for the contract function `upgradeNatively`.
 /// Takes the new module and optionally an entrypoint to call in the new module
-/// after triggering the upgrade. The upgrade is reverted if the entrypoint
+/// after triggering the upgrade. The upgrade is reverted if the entrypoint invoke
 /// fails. This is useful for doing migration in the same transaction triggering
 /// the upgrade.
 #[derive(Debug, Serialize, SchemaType)]
@@ -182,7 +199,7 @@ pub struct UpgradeParams {
 /// migration function after the upgrade.
 ///
 /// It rejects if:
-/// - Sender is not the owner of the registry contract instance.
+/// - Sender is not the registry contract instance.
 /// - It fails to parse the parameter.
 /// - If the ugrade fails.
 /// - If the migration invoke fails.
@@ -210,7 +227,7 @@ fn upgrade_natively<S: HasStateApi>(
     // Only the registry can upgrade this contract.
     ensure_eq!(
         ctx.sender(),
-        concordium_std::Address::Contract(state.registry),
+        Address::Contract(state.registry),
         CustomContractError::Unauthorized
     );
 
@@ -243,7 +260,38 @@ fn destroy<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &mut impl HasHost<State<S>, StateApiType = S>,
 ) -> Result<(), CustomContractError> {
-    bail!(CustomContractError::NotSupportedUseUpgradeFunctionInstead);
+    bail!(CustomContractError::NotSupported);
+}
+
+/// Part of the parameter type for the contract function `update`.
+/// Specifies the message that is signed.
+#[derive(SchemaType, Serialize, Clone)]
+pub struct Message {
+    /// The contract_address that the signature is intended for.
+    pub contract_address: ContractAddress,
+    /// A timestamp to make signatures expire.
+    pub timestamp: Timestamp,
+    /// A chain id that this message was intended for.
+    pub chain_id: u16,
+    /// The price feed.
+    pub price_feed: Vec<(HashSha2256, PriceData)>,
+}
+
+/// The parameter type for the contract function `update`.
+/// Takes a vector of signers and signatures, and the message that was signed.
+#[derive(Serialize, SchemaType)]
+pub struct UpdateParams {
+    /// Signers and signatures. The signatures are in a two-level map to support multi-sig accounts.
+    pub signers_and_signatures: Vec<(AccountAddress, AccountSignatures)>,
+    /// Message that was signed.
+    pub message: Message,
+}
+
+#[derive(Serialize)]
+#[concordium(transparent)]
+pub struct UpdateParamsPartial {
+    /// Signers and signatures. The signatures are in a two-level map to support multi-sig accounts.
+    pub signers_and_signatures: Vec<(AccountAddress, AccountSignatures)>,
 }
 
 /// Helper function to calculate the `message_hash`.
@@ -262,13 +310,13 @@ fn contract_view_message_hash<S: HasStateApi>(
 ) -> Result<Vec<[u8; 32]>, CustomContractError> {
     // Parse the parameter.
     let mut cursor = ctx.parameter_cursor();
-    // The input parameter is `PermitParam` but we only read the initial part of it
-    // with `PermitParamPartial`. I.e. we read the `signature` and the
-    // `signer`, but not the `message` here.
+    // The input parameter is `UpdateParams` but we only read the initial part of it
+    // with `UpdateParamsPartial`. I.e. we read the `signatures` and the
+    // `signers`, but not the `message` here.
     let param: UpdateParamsPartial = cursor.get()?;
 
-    // The input parameter is `PermitParam` but we have only read the initial part
-    // of it with `PermitParamPartial` so far. We read in the `message` now.
+    // The input parameter is `UpdateParams` but we have only read the initial part
+    // of it with `UpdateParamsPartial` so far. We read in the `message` now.
     // `(cursor.size() - cursor.cursor_position()` is the length of the message in
     // bytes.
     let mut message_bytes = vec![0; (cursor.size() - cursor.cursor_position()) as usize];
@@ -286,9 +334,11 @@ fn contract_view_message_hash<S: HasStateApi>(
 
     let mut message_hashes: Vec<[u8; 32]> = vec![];
 
-    for i in 0..param.signer.len() {
+    for i in 0..param.signers_and_signatures.len() {
+        let signer = param.signers_and_signatures[i].0;
+
         // Prepend the `account` address of the signer.
-        msg_prepend[0..32].copy_from_slice(param.signer[i].as_ref());
+        msg_prepend[0..32].copy_from_slice(signer.as_ref());
         // Prepend 8 zero bytes.
         msg_prepend[32..40].copy_from_slice(&[0u8; 8]);
         // Calculate the message hash.
@@ -303,43 +353,51 @@ fn contract_view_message_hash<S: HasStateApi>(
 }
 
 /// Helper function to verify the signature.
+/// This function throws if the signatures are not valid.
+#[receive(
+    contract = "umbrella_feeds",
+    name = "verifySignatures",
+    parameter = "UpdateParams",
+    crypto_primitives,
+    mutable
+)]
 fn verify_signatures<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &mut impl HasHost<State<S>, StateApiType = S>,
     crypto_primitives: &impl HasCryptoPrimitives,
-) -> Result<bool, CustomContractError> {
+) -> Result<(), CustomContractError> {
     let param: UpdateParams = ctx.parameter_cursor().get()?;
 
     ensure!(
-        param.signatures.len() >= host.state().required_signatures as usize,
+        param.signers_and_signatures.len() >= host.state().required_signatures as usize,
         CustomContractError::NotEnoughSignatures
     );
 
     let mut prev_signer = AccountAddress([0u8; 32]);
 
-    let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
+    let message_hashes = contract_view_message_hash(ctx, host, crypto_primitives)?;
 
     let mut validators: Vec<AccountAddress> = vec![];
 
-    // to save gas we check only required number of signatures
-    // case, where you can have part of signatures invalid but still enough valid in total is not supported
+    // To save gas we check only required number of signatures.
+    // The case, where you can have part of signatures invalid but still enough valid in total is not supported.
     for i in 0..host.state().required_signatures {
+        let signer = param.signers_and_signatures[i as usize].0;
+        let signature = &param.signers_and_signatures[i as usize].1;
+
         //Check signature.
-        let valid_signature = host.check_account_signature(
-            param.signer[i as usize],
-            &param.signatures[i as usize],
-            &message_hash[i as usize],
-        )?;
+        let valid_signature =
+            host.check_account_signature(signer, signature, &message_hashes[i as usize])?;
         ensure!(valid_signature, CustomContractError::WrongSignature);
 
         ensure!(
-            prev_signer < param.signer[i as usize],
+            prev_signer < signer,
             CustomContractError::SignaturesOutOfOrder
         );
 
-        validators.push(param.signer[i as usize]);
+        validators.push(signer);
 
-        prev_signer = param.signer[i as usize];
+        prev_signer = signer;
     }
 
     let are_valid_signers = host.invoke_contract_read_only::<Vec<AccountAddress>>(
@@ -355,41 +413,7 @@ fn verify_signatures<S: HasStateApi>(
 
     ensure_eq!(are_valid_signers, true, CustomContractError::InvalidSigner);
 
-    Ok(true)
-}
-
-/// Part of the parameter type for the contract function `permit`.
-/// Specifies the message that is signed.
-#[derive(SchemaType, Serialize, Clone)]
-pub struct Message {
-    /// The contract_address that the signature is intended for.
-    pub contract_address: ContractAddress,
-    /// A timestamp to make signatures expire.
-    pub timestamp: Timestamp,
-    pub chain_id: u16,
-    /// The entry_point that the signature is intended for.
-    pub entry_point: OwnedEntrypointName,
-    pub price_feed: Vec<(HashSha2256, PriceData)>,
-}
-
-/// The parameter type for the contract function `permit`.
-/// Takes a signature, the signer, and the message that was signed.
-#[derive(Serialize, SchemaType)]
-pub struct UpdateParams {
-    /// Signature/s. The CIS3 standard supports multi-sig accounts.
-    pub signatures: Vec<AccountSignatures>,
-    /// Accounts that created the above signatures.
-    pub signer: Vec<AccountAddress>,
-    /// Message that was signed.
-    pub message: Message,
-}
-
-#[derive(Serialize)]
-pub struct UpdateParamsPartial {
-    /// Signature/s. The CIS3 standard supports multi-sig accounts.
-    pub signature: Vec<AccountSignatures>,
-    /// Accounts that created the above signatures.
-    pub signer: Vec<AccountAddress>,
+    Ok(())
 }
 
 #[receive(
@@ -407,24 +431,7 @@ fn update<S: HasStateApi>(
 ) -> Result<(), CustomContractError> {
     let param: UpdateParams = ctx.parameter_cursor().get()?;
 
-    // // Update the nonce.
-    // let mut entry = host.state_mut().nonces_registry.entry(param.signer).or_insert_with(|| 0);
-
-    // // Get the current nonce.
-    // let nonce = *entry;
-    // // Bump nonce.
-    // *entry += 1;
-    // drop(entry);
-
-    ensure!(
-        param.signatures.len() == param.signer.len(),
-        CustomContractError::ArraysDataDoNotMatch
-    );
-
     let message = param.message;
-
-    // Check the nonce to prevent replay attacks.
-    // ensure_eq!(message.nonce, nonce, CustomContractError::NonceMismatch);
 
     // Check that the signature was intended for this contract.
     ensure_eq!(
@@ -446,21 +453,14 @@ fn update<S: HasStateApi>(
         CustomContractError::ChainIdMismatch
     );
 
-    // Check signature has correct entrypoint.
-    ensure_eq!(
-        message.entry_point,
-        OwnedEntrypointName::new_unchecked(String::from("update")),
-        CustomContractError::EntrypointMismatch
-    );
-
-    let _is_ok = verify_signatures(ctx, host, crypto_primitives)?;
+    verify_signatures(ctx, host, crypto_primitives)?;
 
     for element in message.price_feed {
         let price_key: HashSha2256 = element.0;
         let price_data: PriceData = element.1;
 
-        // we do not allow for older prices
-        // at the same time it prevents from reusing signatures
+        // We do not allow for older prices.
+        // This prevents replay attacks by preventing reusing of signatures at the same time.
         let old_price_data = host.state().prices.get(&price_key).map(|s| *s);
         if let Some(old_price_data) = old_price_data {
             ensure!(
@@ -475,7 +475,7 @@ fn update<S: HasStateApi>(
     Ok(())
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the key hash/name of this contract.
 #[receive(
     contract = "umbrella_feeds",
     name = "getName",

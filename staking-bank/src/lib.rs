@@ -390,7 +390,6 @@ fn upgrade_natively<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &mut impl HasHost<S>,
 ) -> Result<(), CustomContractError> {
-
     // There are no requirements atm
 
     Ok(())
@@ -402,9 +401,7 @@ fn unregister<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<()> {
-
     // There are no requirements atm
 
     Ok(())
 }
-

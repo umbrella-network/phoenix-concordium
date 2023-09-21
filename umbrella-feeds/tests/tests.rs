@@ -1,13 +1,11 @@
 use std::collections::BTreeMap;
 
+use concordium_smart_contract_testing::AccountAccessStructure;
 use concordium_smart_contract_testing::*;
-use concordium_smart_contract_testing::{AccountAccessStructure, *};
+use concordium_std::HashSha2256;
 use concordium_std::{
-    AccountPublicKeys, AccountSignatures, CredentialSignatures, PublicKey, PublicKeyEd25519,
-    SignatureEd25519, Timestamp,
+    AccountSignatures, CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp,
 };
-use concordium_std::{Deserial, HashSha2256};
-use primitive_types::U256;
 use registry::{AtomicUpdateParam, ImportContractsParam};
 use staking_bank::InitParamsStakingBank;
 use umbrella_feeds::{InitParamsUmbrellaFeeds, Message, PriceData, UpdateParams};
@@ -20,18 +18,36 @@ const KEY_HASH: HashSha2256 = HashSha2256([
     253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
 ]);
 
+const KEY_HASH_2: HashSha2256 = HashSha2256([
+    120, 14, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
+    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
+]);
+
 const SIGNATURE_1: SignatureEd25519 = SignatureEd25519([
-    154, 75, 154, 59, 91, 175, 118, 168, 44, 240, 7, 241, 37, 176, 226, 13, 101, 229, 87, 254, 198,
-    43, 162, 180, 238, 212, 193, 2, 124, 152, 138, 219, 102, 125, 138, 85, 228, 4, 79, 80, 105, 86,
-    39, 227, 132, 93, 2, 52, 246, 156, 14, 110, 249, 191, 5, 213, 0, 34, 182, 219, 215, 146, 162,
-    8,
+    161, 214, 49, 252, 20, 12, 124, 34, 162, 35, 165, 51, 95, 46, 134, 216, 65, 215, 220, 14, 5,
+    155, 26, 119, 243, 206, 107, 119, 72, 124, 245, 141, 69, 22, 191, 173, 122, 46, 222, 247, 211,
+    191, 176, 192, 188, 16, 184, 53, 168, 133, 72, 137, 67, 79, 237, 98, 120, 111, 67, 26, 59, 254,
+    226, 4,
 ]);
 
 const SIGNATURE_2: SignatureEd25519 = SignatureEd25519([
-    37, 108, 93, 17, 90, 192, 78, 226, 244, 224, 236, 133, 119, 226, 5, 191, 81, 152, 56, 186, 7,
-    92, 93, 132, 73, 84, 194, 226, 123, 39, 30, 72, 96, 232, 135, 27, 18, 46, 240, 133, 5, 14, 1,
-    87, 119, 65, 169, 211, 236, 12, 210, 211, 221, 141, 141, 209, 248, 166, 255, 71, 39, 52, 210,
-    4,
+    0, 92, 200, 146, 54, 23, 137, 143, 146, 218, 66, 18, 207, 212, 121, 79, 203, 121, 246, 117,
+    215, 221, 220, 60, 220, 89, 236, 50, 191, 216, 239, 228, 186, 36, 79, 180, 124, 88, 79, 216,
+    147, 183, 226, 117, 188, 240, 86, 243, 142, 67, 189, 24, 60, 7, 144, 194, 41, 36, 158, 28, 74,
+    178, 100, 14,
+]);
+
+const SIGNATURE_TWO_PRICE_FEEDS_1: SignatureEd25519 = SignatureEd25519([
+    28, 27, 160, 11, 217, 252, 218, 53, 67, 9, 64, 231, 162, 43, 113, 41, 196, 148, 254, 55, 9, 62,
+    15, 96, 174, 147, 105, 198, 210, 181, 145, 169, 141, 42, 220, 86, 87, 44, 92, 18, 151, 55, 96,
+    59, 173, 7, 191, 32, 126, 236, 152, 114, 19, 19, 229, 216, 218, 58, 143, 69, 203, 221, 126, 14,
+]);
+
+const SIGNATURE_TWO_PRICE_FEEDS_2: SignatureEd25519 = SignatureEd25519([
+    86, 182, 34, 32, 154, 63, 61, 31, 243, 77, 153, 78, 99, 28, 249, 137, 163, 159, 12, 13, 184,
+    126, 214, 41, 51, 185, 150, 195, 144, 30, 144, 199, 239, 177, 110, 217, 143, 71, 28, 30, 131,
+    182, 73, 68, 17, 6, 156, 27, 253, 80, 17, 210, 221, 60, 38, 72, 195, 36, 130, 175, 232, 42,
+    202, 10,
 ]);
 
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
@@ -149,7 +165,7 @@ fn setup_chain_and_contract() -> (
                 param: OwnedParameter::empty(),
             },
         )
-        .expect("Initialization of `Umbrella feeds` should always succeed");
+        .expect("Initialization of `registry` should always succeed");
 
     // Deploying 'staking bank' contract
 
@@ -179,7 +195,7 @@ fn setup_chain_and_contract() -> (
                     .expect("`InitContractsParam` should be a valid inut parameter"),
             },
         )
-        .expect("Initialization of `Staking_bank` should always succeed");
+        .expect("Initialization of `staking_bank` should always succeed");
 
     // Deploy 'umbrella_feeds' contract
 
@@ -199,7 +215,7 @@ fn setup_chain_and_contract() -> (
         decimals: 4,
     };
 
-    let initialization = chain
+    let initialization_umbrella_feeds = chain
         .contract_init(
             Signer::with_one_key(),
             ACC_ADDR_OWNER,
@@ -212,11 +228,11 @@ fn setup_chain_and_contract() -> (
                     .expect("`InitContractsParam` should be a valid inut parameter"),
             },
         )
-        .expect("Initialization of `Umbrella feeds` should always succeed");
+        .expect("Initialization of `umbrella_feeds` should always succeed");
 
     (
         chain,
-        initialization,
+        initialization_umbrella_feeds,
         initialization_registry,
         initialization_staking_bank,
     )
@@ -224,20 +240,252 @@ fn setup_chain_and_contract() -> (
 
 #[test]
 fn test_init() {
-    let (chain, initialization, initialization_registry, initialization_staking_bank) =
-        setup_chain_and_contract();
-    assert_eq!(
-        chain.contract_balance(initialization.contract_address),
-        Some(Amount::zero()),
-        "Contract should have no funds"
-    );
+    let (
+        chain,
+        initialization_umbrella_feeds,
+        _initialization_registry,
+        _initialization_staking_bank,
+    ) = setup_chain_and_contract();
+
+    // Checking getChainId
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.getChainId".to_string(),
+                ),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Should be able to query");
+
+    let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(value, 0);
+
+    // Checking DECIMALS
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.DECIMALS".to_string(),
+                ),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Should be able to query");
+
+    let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(value, 4);
 }
 
-/// Permit update operator function.
+/// Test updating the price feed with two signers and two price feeds.
 #[test]
-fn test_update_operator() {
-    let (mut chain, initialization, initialization_registry, initialization_staking_bank) =
-        setup_chain_and_contract();
+fn test_update_two_price_feeds() {
+    let (
+        mut chain,
+        initialization_umbrella_feeds,
+        _initialization_registry,
+        _initialization_staking_bank,
+    ) = setup_chain_and_contract();
+
+    let price_data_1 = PriceData {
+        data: 7,
+        heartbeat: 12,
+        timestamp: Timestamp::from_timestamp_millis(9),
+        price: 4,
+    };
+
+    let price_data_2 = PriceData {
+        data: 73,
+        heartbeat: 12342,
+        timestamp: Timestamp::from_timestamp_millis(239),
+        price: 44,
+    };
+
+    // Creating signer_1's signature map
+
+    let mut inner_signature_map = BTreeMap::new();
+    inner_signature_map.insert(
+        0u8,
+        concordium_std::Signature::Ed25519(SIGNATURE_TWO_PRICE_FEEDS_1),
+    );
+
+    let mut signature_map = BTreeMap::new();
+    signature_map.insert(
+        0u8,
+        CredentialSignatures {
+            sigs: inner_signature_map,
+        },
+    );
+
+    // Creating signer_2's signature map
+
+    let mut inner_signature_map_signer_2 = BTreeMap::new();
+    inner_signature_map_signer_2.insert(
+        0u8,
+        concordium_std::Signature::Ed25519(SIGNATURE_TWO_PRICE_FEEDS_2),
+    );
+
+    let mut signature_map_signer_2 = BTreeMap::new();
+    signature_map_signer_2.insert(
+        0u8,
+        CredentialSignatures {
+            sigs: inner_signature_map_signer_2,
+        },
+    );
+
+    // Creating input parameter for pice data update
+
+    let update_param = UpdateParams {
+        signers_and_signatures: vec![
+            (
+                SIGNER_1,
+                AccountSignatures {
+                    sigs: signature_map,
+                },
+            ),
+            (
+                SIGNER_2,
+                AccountSignatures {
+                    sigs: signature_map_signer_2,
+                },
+            ),
+        ],
+        message: Message {
+            timestamp: Timestamp::from_timestamp_millis(10000000000),
+            contract_address: initialization_umbrella_feeds.contract_address,
+            chain_id: 0,
+            price_feed: vec![(KEY_HASH, price_data_1), (KEY_HASH_2, price_data_2)],
+        },
+    };
+
+    // Checking message hash to be signed
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.viewMessageHash".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&update_param)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query messageHash");
+
+    let message_hashes: Vec<[u8; 32]> =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    for (i, message_hash) in message_hashes.iter().enumerate() {
+        println!(
+            "Signer {} sign this message hash: {}",
+            i,
+            HashSha2256(*message_hash)
+        );
+    }
+
+    let signature:SignatureEd25519 = "1C1BA00BD9FCDA35430940E7A22B7129C494FE37093E0F60AE9369C6D2B591A98D2ADC56572C5C129737603BAD07BF207EEC98721313E5D8DA3A8F45CBDD7E0E".parse().unwrap();
+    println!("Signature: {:?}", signature.0);
+
+    let public_key: PublicKeyEd25519 =
+        "D96C4B1218EA7EC20F4604D6C2F02FA3F36B518443F3A2D14E885E7FF715DEDD"
+            .parse()
+            .unwrap();
+    println!("Public key: {:?}", public_key.0);
+
+    // Updating price data in contract
+
+    let update = chain
+        .contract_update(
+            Signer::with_one_key(),
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked("umbrella_feeds.update".to_string()),
+                message: OwnedParameter::from_serial(&update_param)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to update operator with permit");
+
+    // Checking price data was updated correctly in contract
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.getPriceData".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&KEY_HASH)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query getPriceData");
+
+    let stored_price_data: PriceData =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(stored_price_data, price_data_1);
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.getPriceData".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&KEY_HASH_2)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query getPriceData");
+
+    let stored_price_data: PriceData =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(stored_price_data, price_data_2);
+}
+
+/// Test updating the price feed with two signer and one price feed.
+#[test]
+fn test_update_price_feed() {
+    let (
+        mut chain,
+        initialization_umbrella_feeds,
+        _initialization_registry,
+        _initialization_staking_bank,
+    ) = setup_chain_and_contract();
 
     let price_data = PriceData {
         data: 7,
@@ -275,21 +523,25 @@ fn test_update_operator() {
     // Creating input parameter for pice data update
 
     let update_param = UpdateParams {
-        signatures: vec![
-            AccountSignatures {
-                sigs: signature_map,
-            },
-            AccountSignatures {
-                sigs: signature_map_signer_2,
-            },
+        signers_and_signatures: vec![
+            (
+                SIGNER_1,
+                AccountSignatures {
+                    sigs: signature_map,
+                },
+            ),
+            (
+                SIGNER_2,
+                AccountSignatures {
+                    sigs: signature_map_signer_2,
+                },
+            ),
         ],
-        signer: vec![SIGNER_1, SIGNER_2],
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
-            contract_address: initialization.contract_address,
+            contract_address: initialization_umbrella_feeds.contract_address,
             chain_id: 0,
             price_feed: vec![(KEY_HASH, price_data)],
-            entry_point: OwnedEntrypointName::new_unchecked("update".into()),
         },
     };
 
@@ -302,7 +554,7 @@ fn test_update_operator() {
             Energy::from(10000),
             UpdateContractPayload {
                 amount: Amount::zero(),
-                address: initialization.contract_address,
+                address: initialization_umbrella_feeds.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.viewMessageHash".to_string(),
                 ),
@@ -310,7 +562,7 @@ fn test_update_operator() {
                     .expect("Should be a valid inut parameter"),
             },
         )
-        .expect("Should be able to query getPriceData");
+        .expect("Should be able to query messageHash");
 
     let message_hashes: Vec<[u8; 32]> =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
@@ -342,7 +594,7 @@ fn test_update_operator() {
             Energy::from(10000),
             UpdateContractPayload {
                 amount: Amount::zero(),
-                address: initialization.contract_address,
+                address: initialization_umbrella_feeds.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("umbrella_feeds.update".to_string()),
                 message: OwnedParameter::from_serial(&update_param)
                     .expect("Should be a valid inut parameter"),
@@ -359,7 +611,7 @@ fn test_update_operator() {
             Energy::from(10000),
             UpdateContractPayload {
                 amount: Amount::zero(),
-                address: initialization.contract_address,
+                address: initialization_umbrella_feeds.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.getPriceData".to_string(),
                 ),
@@ -377,11 +629,17 @@ fn test_update_operator() {
 
 #[test]
 fn test_upgrade_without_migration_function() {
-    let (mut chain, initialization, initialization_registry, initialization_staking_bank) =
-        setup_chain_and_contract();
+    let (
+        mut chain,
+        initialization_umbrella_feeds,
+        initialization_registry,
+        _initialization_staking_bank,
+    ) = setup_chain_and_contract();
+
+    // Importing umbrella_feeds into the registry contract
 
     let input_parameter = ImportContractsParam {
-        entries: vec![initialization.contract_address],
+        entries: vec![initialization_umbrella_feeds.contract_address],
     };
 
     let update = chain.contract_update(
@@ -398,6 +656,35 @@ fn test_upgrade_without_migration_function() {
         },
     );
 
+    // Checking that the contract was registered correctly
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "registry.getAddressByString".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&String::from("UmbrellaFeeds"))
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query contract address");
+
+    let contract_address: ContractAddress =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(
+        contract_address,
+        initialization_umbrella_feeds.contract_address
+    );
+
+    // Deploying an upgraded umbrella_feeds module.
+
     let deployment = chain
         .module_deploy_v1(
             Signer::with_one_key(),
@@ -407,10 +694,12 @@ fn test_upgrade_without_migration_function() {
         )
         .expect("`Contract version2` deployment should always succeed");
 
+    // Upgrading umbrella_feeds contract with the new module reference.
+
     let input_parameter = AtomicUpdateParam {
         module: deployment.module_reference,
         migrate: None,
-        contract_address: initialization.contract_address,
+        contract_address: initialization_umbrella_feeds.contract_address,
     };
 
     let update = chain
@@ -429,18 +718,47 @@ fn test_upgrade_without_migration_function() {
         )
         .expect("Should be able to update");
 
-    // Upgrade `contract_version1` to `contract_version2`.
-    let update = chain.contract_update(
-        Signer::with_one_key(), // Used for specifying the number of signatures.
-        ACC_ADDR_OWNER,         // Invoker account.
-        Address::Account(ACC_ADDR_OWNER), // Sender (can also be a contract).
-        Energy::from(10000),    // Maximum energy allowed for the update.
-        UpdateContractPayload {
-            address: initialization.contract_address, // The contract to update.
-            receive_name: OwnedReceiveName::new_unchecked("umbrella_feeds.destroy_2".into()), // The receive function to call.
-            message: OwnedParameter::from_serial(&input_parameter)
-                .expect("`UpgradeParams` should be a valid inut parameter"), // The parameter sent to the contract.
-            amount: Amount::from_ccd(0), // Sending the contract 0 CCD.
-        },
+    // Checking that the upgrade was successfully by calling a function that only exists in the upgraded `umbrella_feeds` contract.
+
+    let _update = chain
+        .contract_update(
+            Signer::with_one_key(), // Used for specifying the number of signatures.
+            ACC_ADDR_OWNER,         // Invoker account.
+            Address::Account(ACC_ADDR_OWNER), // Sender (can also be a contract).
+            Energy::from(10000),    // Maximum energy allowed for the update.
+            UpdateContractPayload {
+                address: initialization_umbrella_feeds.contract_address, // The contract to update.
+                receive_name: OwnedReceiveName::new_unchecked("umbrella_feeds.DECIMALS_2".into()), // The receive function to call.
+                message: OwnedParameter::empty(),
+                amount: Amount::from_ccd(0), // Sending the contract 0 CCD.
+            },
+        )
+        .expect("Should be able to update");
+
+    // Checking that the contract was updated in the registry correctly
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_registry.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "registry.getAddressByString".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&String::from("UmbrellaFeeds"))
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query contract address");
+
+    let contract_address: ContractAddress =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(
+        contract_address,
+        initialization_umbrella_feeds.contract_address
     );
 }

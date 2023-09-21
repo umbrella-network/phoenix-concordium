@@ -20,17 +20,17 @@ const KEY_HASH: HashSha2256 = HashSha2256([
 ]);
 
 const SIGNATURE_1: SignatureEd25519 = SignatureEd25519([
-    154, 75, 154, 59, 91, 175, 118, 168, 44, 240, 7, 241, 37, 176, 226, 13, 101, 229, 87, 254, 198,
-    43, 162, 180, 238, 212, 193, 2, 124, 152, 138, 219, 102, 125, 138, 85, 228, 4, 79, 80, 105, 86,
-    39, 227, 132, 93, 2, 52, 246, 156, 14, 110, 249, 191, 5, 213, 0, 34, 182, 219, 215, 146, 162,
-    8,
+    161, 214, 49, 252, 20, 12, 124, 34, 162, 35, 165, 51, 95, 46, 134, 216, 65, 215, 220, 14, 5,
+    155, 26, 119, 243, 206, 107, 119, 72, 124, 245, 141, 69, 22, 191, 173, 122, 46, 222, 247, 211,
+    191, 176, 192, 188, 16, 184, 53, 168, 133, 72, 137, 67, 79, 237, 98, 120, 111, 67, 26, 59, 254,
+    226, 4,
 ]);
 
 const SIGNATURE_2: SignatureEd25519 = SignatureEd25519([
-    37, 108, 93, 17, 90, 192, 78, 226, 244, 224, 236, 133, 119, 226, 5, 191, 81, 152, 56, 186, 7,
-    92, 93, 132, 73, 84, 194, 226, 123, 39, 30, 72, 96, 232, 135, 27, 18, 46, 240, 133, 5, 14, 1,
-    87, 119, 65, 169, 211, 236, 12, 210, 211, 221, 141, 141, 209, 248, 166, 255, 71, 39, 52, 210,
-    4,
+    0, 92, 200, 146, 54, 23, 137, 143, 146, 218, 66, 18, 207, 212, 121, 79, 203, 121, 246, 117,
+    215, 221, 220, 60, 220, 89, 236, 50, 191, 216, 239, 228, 186, 36, 79, 180, 124, 88, 79, 216,
+    147, 183, 226, 117, 188, 240, 86, 243, 142, 67, 189, 24, 60, 7, 144, 194, 41, 36, 158, 28, 74,
+    178, 100, 14,
 ]);
 
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
@@ -150,10 +150,10 @@ fn setup_chain_and_contract() -> (
                 mod_ref: deployment_staking_bank.module_reference,
                 init_name: OwnedContractName::new_unchecked("init_staking_bank".to_string()),
                 param: OwnedParameter::from_serial(&input_parameter)
-                    .expect("`InitContractsParam` should be a valid inut parameter"),
+                    .expect("`input_parameter` should be a valid inut parameter"),
             },
         )
-        .expect("Initialization of `Staking_bank` should always succeed");
+        .expect("Initialization of `staking_bank` should always succeed");
 
     // Deploying 'registry' contract
 
@@ -178,7 +178,7 @@ fn setup_chain_and_contract() -> (
                 param: OwnedParameter::empty(),
             },
         )
-        .expect("Initialization of `Umbrella feeds` should always succeed");
+        .expect("Initialization of `registry` should always succeed");
 
     // Deploy 'umbrella_feeds' contract
 
@@ -198,7 +198,7 @@ fn setup_chain_and_contract() -> (
         decimals: 18,
     };
 
-    let initialization = chain
+    let initialization_umbrella_feeds = chain
         .contract_init(
             Signer::with_one_key(),
             ACC_ADDR_OWNER,
@@ -208,14 +208,14 @@ fn setup_chain_and_contract() -> (
                 mod_ref: deployment.module_reference,
                 init_name: OwnedContractName::new_unchecked("init_umbrella_feeds".to_string()),
                 param: OwnedParameter::from_serial(&input_parameter_2)
-                    .expect("`InitContractsParam` should be a valid inut parameter"),
+                    .expect("`input_parameter_2` should be a valid inut parameter"),
             },
         )
-        .expect("Initialization of `Umbrella feeds` should always succeed");
+        .expect("Initialization of `umbrella_feeds` should always succeed");
 
     (
         chain,
-        initialization,
+        initialization_umbrella_feeds,
         initialization_registry,
         initialization_staking_bank,
     )
@@ -223,10 +223,14 @@ fn setup_chain_and_contract() -> (
 
 #[test]
 fn test_init() {
-    let (chain, initialization, _initialization_registry, _initialization_staking_bank) =
-        setup_chain_and_contract();
+    let (
+        chain,
+        initialization_umbrella_feeds,
+        _initialization_registry,
+        _initialization_staking_bank,
+    ) = setup_chain_and_contract();
     assert_eq!(
-        chain.contract_balance(initialization.contract_address),
+        chain.contract_balance(initialization_umbrella_feeds.contract_address),
         Some(Amount::zero()),
         "Contract should have no funds"
     );
@@ -235,8 +239,12 @@ fn test_init() {
 /// Permit update operator function.
 #[test]
 fn test_update_operator() {
-    let (mut chain, initialization, initialization_registry, _initialization_staking_bank) =
-        setup_chain_and_contract();
+    let (
+        mut chain,
+        initialization_umbrella_feeds,
+        initialization_registry,
+        _initialization_staking_bank,
+    ) = setup_chain_and_contract();
 
     let price_data = PriceData {
         data: 7,
@@ -274,21 +282,25 @@ fn test_update_operator() {
     // Creating input parameter for pice data update
 
     let update_param = UpdateParams {
-        signatures: vec![
-            AccountSignatures {
-                sigs: signature_map,
-            },
-            AccountSignatures {
-                sigs: signature_map_signer_2,
-            },
+        signers_and_signatures: vec![
+            (
+                SIGNER_1,
+                AccountSignatures {
+                    sigs: signature_map,
+                },
+            ),
+            (
+                SIGNER_2,
+                AccountSignatures {
+                    sigs: signature_map_signer_2,
+                },
+            ),
         ],
-        signer: vec![SIGNER_1, SIGNER_2],
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
-            contract_address: initialization.contract_address,
+            contract_address: initialization_umbrella_feeds.contract_address,
             chain_id: 0,
             price_feed: vec![(KEY_HASH, price_data)],
-            entry_point: OwnedEntrypointName::new_unchecked("update".into()),
         },
     };
 
@@ -301,7 +313,7 @@ fn test_update_operator() {
             Energy::from(10000),
             UpdateContractPayload {
                 amount: Amount::zero(),
-                address: initialization.contract_address,
+                address: initialization_umbrella_feeds.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.viewMessageHash".to_string(),
                 ),
@@ -322,7 +334,7 @@ fn test_update_operator() {
         );
     }
 
-    let signature:SignatureEd25519 = "F6FF5E71F7EA6BEAABA1BBA6B2FECFBE3E3A1B495D328A85FB866C93B1870667BDFEE8F81776A7CAE5DB586B2D17D83485A73D43C55BFC7443C676B4CCABB50B".parse().unwrap();
+    let signature:SignatureEd25519 = "A1D631FC140C7C22A223A5335F2E86D841D7DC0E059B1A77F3CE6B77487CF58D4516BFAD7A2EDEF7D3BFB0C0BC10B835A8854889434FED62786F431A3BFEE204".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
@@ -341,7 +353,7 @@ fn test_update_operator() {
             Energy::from(10000),
             UpdateContractPayload {
                 amount: Amount::zero(),
-                address: initialization.contract_address,
+                address: initialization_umbrella_feeds.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("umbrella_feeds.update".to_string()),
                 message: OwnedParameter::from_serial(&update_param)
                     .expect("Should be a valid inut parameter"),
@@ -358,7 +370,7 @@ fn test_update_operator() {
             Energy::from(10000),
             UpdateContractPayload {
                 amount: Amount::zero(),
-                address: initialization.contract_address,
+                address: initialization_umbrella_feeds.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.getPriceData".to_string(),
                 ),
@@ -386,7 +398,7 @@ fn test_update_operator() {
 
     let input_parameter_3 = InitParamsUmbrellaFeedsReader {
         registry: initialization_registry.contract_address,
-        umbrella_feeds: initialization.contract_address,
+        umbrella_feeds: initialization_umbrella_feeds.contract_address,
         key: KEY_HASH,
         description: "This is ETH-BTC".to_string(),
         decimals: 18,
@@ -404,10 +416,10 @@ fn test_update_operator() {
                     "init_umbrella_feeds_reader".to_string(),
                 ),
                 param: OwnedParameter::from_serial(&input_parameter_3)
-                    .expect("`InitContractsParam` should be a valid inut parameter"),
+                    .expect("`input_parameter_3` should be a valid inut parameter"),
             },
         )
-        .expect("Initialization of `Umbrella feeds reader` should always succeed");
+        .expect("Initialization of `umbrella_feeds_reader` should always succeed");
 
     let invoke = chain
         .contract_invoke(
@@ -481,7 +493,7 @@ fn test_update_operator() {
     // We upgrade the `umbrellaFeeds` contract first
 
     let input_parameter = ImportContractsParam {
-        entries: vec![initialization.contract_address],
+        entries: vec![initialization_umbrella_feeds.contract_address],
     };
 
     chain
@@ -512,7 +524,7 @@ fn test_update_operator() {
     let input_parameter = AtomicUpdateParam {
         module: deployment.module_reference,
         migrate: None,
-        contract_address: initialization.contract_address,
+        contract_address: initialization_umbrella_feeds.contract_address,
     };
 
     let update = chain
