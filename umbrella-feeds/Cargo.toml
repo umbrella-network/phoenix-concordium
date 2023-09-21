@@ -19,15 +19,11 @@ concordium-smart-contract-testing = "3.0"
 ed25519-dalek = "1.0.1"
 sha256 = "1.4.0"
 
-[dependencies.registry]
+[dev-dependencies.registry]
 path = "../registry/"
 
-[dependencies.staking-bank]
+[dev-dependencies.staking-bank]
 path = "../staking-bank/"
-
-[dependencies.primitive-types]
-version = "0.11"
-default-features = false
 
 [dependencies]
 concordium-std = {version = "8.0", default-features = false}

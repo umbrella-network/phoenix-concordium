@@ -1,41 +1,54 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 //! # Umbrella feeds
+//!
+//! This is an optional price reader for just one feed.
+//! For maximum gas optimization it is recommended to use UmbrellaFeeds directly.
+//!
+//! This contract has a hard-coded `umbrella_feed` contract address.
+//! ATTENTION: `Umbrella_feed` contract should only be upgraded via the `atomicUpdate` entry point in the registry contract to not break this link.
 use concordium_std::*;
 use core::fmt::Debug;
 
 #[derive(Serialize, SchemaType, Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PriceData {
-    /// @dev this is placeholder, that can be used for some additional data
-    /// atm of creating this smart contract, it is only used as marker for removed data (when == type(uint8).max)
+    /// This is a placeholder, that can be used for some additional data.
+    /// It is only used as marker for removed data (when data == u8::MAX) at the moment.
     pub data: u8,
-    /// @dev heartbeat: how often price data will be refreshed in case price stay flat
-    /// Using u64 instead of u24 here (different to solidity original smart contracts)
+    /// The heartbeat specifies how often the price data will be refreshed in case the price stays flat.
+    /// ATTENTION: u64 is used here instead of u24 (different from the original solidity smart contracts).
     pub heartbeat: u64,
-    /// @dev timestamp: price time, at this time validators run consensus
+    /// It is the time the validators run consensus to decide on the price data.
     pub timestamp: Timestamp,
-    /// @dev price
+    /// The price.
     pub price: u128,
 }
 
 #[derive(Serial, Deserial, Debug, SchemaType)]
 struct State {
+    /// Registry contract where the list of all addresses of this protocol is stored.
     registry: ContractAddress,
+    /// Umbrella_feeds contract where price data is stored.
     umbrella_feeds: ContractAddress,
+    /// The key for the feed name represented by this contract. E.g. for the "ETH-USD" feed, the key will be the hash("ETH-USD").
     key: HashSha2256,
+    /// Description of this feed name.
     description: String,
+    /// Decimals for prices stored in the umbrella_feeds contract.
     decimals: u8,
 }
 
-/// Your smart contract errors.
+/// All smart contract errors.
 #[derive(Debug, PartialEq, Eq, Reject, Serial, SchemaType)]
 enum CustomContractError {
-    /// Failed parsing the parameter.
+    /// Failed to parse the parameter.
     #[from(ParseError)]
     ParseParams, // -1
     /// Failed to invoke a contract.
     InvokeContractError, // -2
-    EmptyAddress,         // -3
+    /// Failed because the address(0x0) is not valid.
+    EmptyAddress, // -3
+    /// Failed because the decimal value in this contract and the decimal value in the umbrella_feeds contract do not match.
     DecimalsDoesNotMatch, // -4
 }
 
@@ -46,25 +59,25 @@ impl<T> From<CallContractError<T>> for CustomContractError {
     }
 }
 
-/// The parameter type for the contract functions `publicKeyOf/noneOf`. A query
-/// for the public key/nonce of a given account.
+/// The parameter type for the contract init function.
 #[derive(Debug, Serialize, SchemaType)]
 pub struct InitParamsUmbrellaFeedsReader {
     pub registry: ContractAddress,
     pub umbrella_feeds: ContractAddress,
     pub decimals: u8,
-    pub key: HashSha2256,
     pub description: String,
 }
 
-/// Init function that creates a new smart contract.
+/// Init function that creates a new smart contract. The `checkSetUp` entry point should be called after creating a new smart contract instance for a sanity check.
 #[init(
     contract = "umbrella_feeds_reader",
-    parameter = "InitParamsUmbrellaFeedsReader"
+    parameter = "InitParamsUmbrellaFeedsReader",
+    crypto_primitives
 )]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     _state_builder: &mut StateBuilder<S>,
+    crypto_primitives: &impl HasCryptoPrimitives,
 ) -> InitResult<State> {
     let param: InitParamsUmbrellaFeedsReader = ctx.parameter_cursor().get()?;
 
@@ -77,16 +90,20 @@ fn init<S: HasStateApi>(
         CustomContractError::EmptyAddress.into()
     );
 
+    let key_hash = crypto_primitives
+        .hash_sha2_256(param.description.as_bytes())
+        .0;
+
     Ok(State {
         registry: param.registry,
         decimals: param.decimals,
         umbrella_feeds: param.umbrella_feeds,
-        key: param.key,
+        key: HashSha2256(key_hash),
         description: param.description,
     })
 }
 
-/// View function that returns the balance of an validator
+/// View function to do a sanity check.
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "checkSetUp",
@@ -142,7 +159,7 @@ fn view<'b, S: HasStateApi>(
     Ok(host.state())
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the decimal value.
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "DECIMALS",
@@ -156,24 +173,26 @@ fn decimals<S: HasStateApi>(
 }
 
 #[derive(SchemaType, Serial, Deserial, Debug, PartialEq, Eq)]
-pub struct SchemTypeQuinteWrapper(pub u8, pub u128, pub u8, pub Timestamp, pub u8);
+pub struct SchemaTypeQuintWrapper(pub u8, pub u128, pub u8, pub Timestamp, pub u8);
 
-// View function that returns the balance of an validator
+/// This entry point was inspired by the chainlink interface for easy migration. NOTE: not all returned data fields are covered.
+/// This entry point throws an exception when there is no data, instead of returning unset values, which could be misinterpreted as actual reported values.
+/// It does NOT throw when data is outdated (based on heartbeat and timestamp).
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "latestRoundData",
-    return_value = "SchemTypeQuinteWrapper"
+    return_value = "SchemaTypeQuintWrapper"
 )]
 fn latest_round_data<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<SchemTypeQuinteWrapper> {
+) -> ReceiveResult<SchemaTypeQuintWrapper> {
     let hash: HashSha2256 = host.state().key;
 
     let price_data = host.invoke_contract_read_only::<HashSha2256>(
         &host.state().umbrella_feeds,
         &hash,
-        EntrypointName::new_unchecked("prices"),
+        EntrypointName::new_unchecked("getPriceData"),
         Amount::zero(),
     )?;
 
@@ -181,7 +200,7 @@ fn latest_round_data<S: HasStateApi>(
         .ok_or(CustomContractError::InvokeContractError)?
         .get()?;
 
-    Ok(SchemTypeQuinteWrapper(
+    Ok(SchemaTypeQuintWrapper(
         0u8,
         price_data.price,
         0u8,
@@ -190,7 +209,9 @@ fn latest_round_data<S: HasStateApi>(
     ))
 }
 
-/// The `getPriceData` and the `getPriceDataRaw` have the same logic on Concordium since the native upgrade mechanism on Concordium allows to upgrade of the `UmbrellaFeeds` contract without changing its contract address.
+/// This is main endpoint for reading the feed. The feed is read from the umbrella_feeds contract using the hardcoded `key` in this contract.
+/// In case the feed does not exist, this entry point throws.s
+/// There is no fallback function since the native upgrade mechanism on Concordium allows to upgrade of the `UmbrellaFeeds` contract without changing its contract address.
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "getPriceData",
@@ -205,7 +226,7 @@ fn get_price_data<S: HasStateApi>(
     let price_data = host.invoke_contract_read_only::<HashSha2256>(
         &host.state().umbrella_feeds,
         &hash,
-        EntrypointName::new_unchecked("prices"),
+        EntrypointName::new_unchecked("getPriceData"),
         Amount::zero(),
     )?;
 
@@ -216,7 +237,9 @@ fn get_price_data<S: HasStateApi>(
     Ok(price_data)
 }
 
-/// The `getPriceData` and the `getPriceDataRaw` have the same logic on Concordium since the native upgrade mechanism on Concordium allows to upgrade of the `UmbrellaFeeds` contract without changing its contract address.
+/// This is the raw entry point for reading the feed. The feed is read from the umbrella_feeds contract using the hardcoded `key` in this contract.
+/// In case the feed does not exist, this entry point does NOT throw an error but instead returns a default price value (similar to solidity contracts).
+/// There is no fallback function since the native upgrade mechanism on Concordium allows to upgrade of the `UmbrellaFeeds` contract without changing its contract address.
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "getPriceDataRaw",

@@ -25,9 +25,9 @@ pub struct PriceData {
     /// It is only used as marker for removed data (when data == u8::MAX) at the moment.
     pub data: u8,
     /// The heartbeat specifies how often the price data will be refreshed in case the price stays flat.
-    /// ATTENTION: u64 is used here instead of u24 (different to the original solidity smart contracts).
+    /// ATTENTION: u64 is used here instead of u24 (different from the original solidity smart contracts).
     pub heartbeat: u64,
-    /// It is the time the validators run consensus to decide on the pice data.
+    /// It is the time the validators run consensus to decide on the price data.
     pub timestamp: Timestamp,
     /// The price.
     pub price: u128,
@@ -50,7 +50,7 @@ struct State<S> {
     deployed_at: Timestamp,
     /// Registry contract where the list of all addresses of this protocol is stored.
     registry: ContractAddress,
-    /// StakingBank contract where list of validators is stored
+    /// StakingBank contract where list of validators is stored.
     staking_bank: ContractAddress,
     /// Minimal number of signatures required for accepting price submission (PoA).
     required_signatures: u16,

@@ -16,14 +16,15 @@ wee_alloc = ["concordium-std/wee_alloc"]
 [dev-dependencies]
 concordium-smart-contract-testing = "3.0"
 ed25519-dalek = "1.0.1"
+sha256 = "1.4.0"
 
-[dependencies.registry]
+[dev-dependencies.registry]
 path = "../registry/"
 
-[dependencies.staking-bank]
+[dev-dependencies.staking-bank]
 path = "../staking-bank/"
 
-[dependencies.umbrella-feeds]
+[dev-dependencies.umbrella-feeds]
 path = "../umbrella-feeds/"
 
 [dependencies]
