@@ -378,7 +378,7 @@ pub struct UpgradeParams {
     pub migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
 }
 
-// Hook function to enable `atomicUpdate` via the registry contract.
+/// Hook function to enable `atomicUpdate` via the registry contract.
 #[receive(
     contract = "staking_bank",
     name = "upgradeNatively",
@@ -395,7 +395,7 @@ fn upgrade_natively<S: HasStateApi>(
     Ok(())
 }
 
-// Hook function to enable `atomicUpdate` via the registry contract.
+/// Hook function to enable `atomicUpdate` via the registry contract.
 #[receive(contract = "staking_bank", name = "unregister")]
 fn unregister<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,

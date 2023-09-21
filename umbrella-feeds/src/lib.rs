@@ -196,7 +196,7 @@ pub struct UpgradeParams {
 }
 
 /// Upgrade this smart contract instance to a new module and call optionally a
-/// migration function after the upgrade.
+/// migration function after the upgrade. This is a hook function to enable `atomicUpdate` via the registry contract.
 ///
 /// It rejects if:
 /// - Sender is not the registry contract instance.
@@ -492,7 +492,7 @@ fn get_name<S: HasStateApi>(
     Ok(HashSha2256(key_hash))
 }
 
-/// View function that return many price data
+/// View function that returns many price data. It throws if price feed does not exist.
 #[receive(
     contract = "umbrella_feeds",
     name = "getManyPriceData",
@@ -520,7 +520,9 @@ fn get_mny_price_data<S: HasStateApi>(
     Ok(price_data)
 }
 
-/// View function that return many price data
+/// View function that returns many price data. This function does NOT throw if the price feed does not exists.
+/// The original solidity function returned a default PriceData instead of throwing an error when the price feed did not exsts in this contract.
+/// This behavior (also not typical for Rust) is mimicked.
 #[receive(
     contract = "umbrella_feeds",
     name = "getManyPriceDataRaw",
@@ -548,7 +550,9 @@ fn get_many_price_data_raw<S: HasStateApi>(
     Ok(price_data)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the price data of one price feed. This function does NOT throw if the price feed does not exists.
+/// The original solidity function returned a default PriceData instead of throwing an error when the price feed did not exsts in this contract.
+/// This behavior (also not typical for Rust) is mimicked.
 #[receive(
     contract = "umbrella_feeds",
     name = "prices",
@@ -571,7 +575,7 @@ fn prices<S: HasStateApi>(
     Ok(price_data)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the price data of one price feed. It throws if the price feed does not exist.
 #[receive(
     contract = "umbrella_feeds",
     name = "getPriceData",
@@ -594,7 +598,7 @@ fn get_price_data<S: HasStateApi>(
     Ok(price_data)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the price of one price feed.
 #[receive(
     contract = "umbrella_feeds",
     name = "getPrice",
@@ -617,7 +621,7 @@ fn get_price<S: HasStateApi>(
     Ok(price_data.price)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the time stamp of one price feed.
 #[receive(
     contract = "umbrella_feeds",
     name = "getPriceTimestamp",
@@ -643,7 +647,7 @@ fn get_price_timestamp<S: HasStateApi>(
 #[derive(SchemaType, Serial)]
 pub struct SchemTypeTripleWrapper(u128, Timestamp, u64);
 
-/// View function that returns the balance of an validator
+/// View function that returns the price, timestamp, and heartbeat of one price feed.
 #[receive(
     contract = "umbrella_feeds",
     name = "getPriceTimestampHeartbeat",
@@ -670,7 +674,7 @@ fn get_price_timestamp_heartbeat<S: HasStateApi>(
     ))
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the price data by name.
 #[receive(
     contract = "umbrella_feeds",
     name = "getPriceDataByName",
@@ -698,7 +702,7 @@ fn get_price_data_by_name<S: HasStateApi>(
     Ok(price_data)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the chain id.
 #[receive(contract = "umbrella_feeds", name = "getChainId", return_value = "u16")]
 fn get_chain_id<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
@@ -707,7 +711,7 @@ fn get_chain_id<S: HasStateApi>(
     Ok(CHAIN_ID)
 }
 
-/// View function that returns the balance of an validator
+/// View function that returns the decimals value.
 #[receive(contract = "umbrella_feeds", name = "DECIMALS", return_value = "u8")]
 fn decimals<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
@@ -716,7 +720,7 @@ fn decimals<S: HasStateApi>(
     Ok(host.state().decimals)
 }
 
-/// View function that returns the balance of an validator
+/// Hook function to enable `atomicUpdate` via the registry contract.
 #[receive(contract = "umbrella_feeds", name = "unregister")]
 fn unregister<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
