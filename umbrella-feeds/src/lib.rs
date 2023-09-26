@@ -333,12 +333,14 @@ fn contract_view_message_hash<S: HasStateApi>(
     // sign a transaction. The account nonce is of type u64 (8 bytes).
     let mut msg_prepend = vec![0u8; 32 + 8];
 
-    let mut message_hashes: Vec<[u8; 32]> = vec![];
+    let vec_length = param.signers_and_signatures.len();
 
-    for i in 0..param.signers_and_signatures.len() {
+    let mut message_hashes: Vec<[u8; 32]> = Vec::with_capacity(vec_length);
+
+    for i in 0..vec_length {
         let signer = param.signers_and_signatures[i].0;
 
-        // Prepend the `account` address of the signer
+        // Prepend the `account` address of the signer.
         msg_prepend[0..32].copy_from_slice(signer.as_ref());
         // Calculate the message hash.
         message_hashes.push(
@@ -509,7 +511,7 @@ fn get_many_price_data<S: HasStateApi>(
 ) -> ReceiveResult<Vec<PriceData>> {
     let key_hashes: Vec<HashSha2256> = ctx.parameter_cursor().get()?;
 
-    let mut price_data = vec![];
+    let mut price_data = Vec::with_capacity(key_hashes.len());
 
     for key_hash in key_hashes {
         price_data.push(
@@ -539,7 +541,7 @@ fn get_many_price_data_raw<S: HasStateApi>(
 ) -> ReceiveResult<Vec<PriceData>> {
     let key_hashes: Vec<HashSha2256> = ctx.parameter_cursor().get()?;
 
-    let mut price_data = vec![];
+    let mut price_data = Vec::with_capacity(key_hashes.len());
 
     for key_hash in key_hashes {
         price_data.push(
@@ -547,7 +549,7 @@ fn get_many_price_data_raw<S: HasStateApi>(
                 .prices
                 .get(&key_hash)
                 .map(|s| *s)
-                .unwrap_or(PriceData::default()),
+                .unwrap_or_else(PriceData::default),
         );
     }
 
@@ -574,7 +576,7 @@ fn prices<S: HasStateApi>(
         .prices
         .get(&key_hash)
         .map(|s| *s)
-        .unwrap_or(PriceData::default());
+        .unwrap_or_else(PriceData::default);
 
     Ok(price_data)
 }
@@ -697,7 +699,7 @@ fn get_price_data_by_name<S: HasStateApi>(
         .prices
         .get(&HashSha2256(key_hash))
         .map(|s| *s)
-        .unwrap_or(PriceData::default());
+        .unwrap_or_else(PriceData::default);
 
     Ok(price_data)
 }

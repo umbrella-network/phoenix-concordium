@@ -300,7 +300,7 @@ fn get_balances<S: HasStateApi>(
     let one = host.state().one;
     let number_of_validators = host.state().number_of_validators;
 
-    let mut balances = vec![];
+    let mut balances = Vec::with_capacity(number_of_validators as usize);
     for _i in 0..number_of_validators {
         balances.push(one)
     }

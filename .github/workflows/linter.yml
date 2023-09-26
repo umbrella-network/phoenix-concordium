@@ -1,0 +1,196 @@
+on:
+  # Trigger the workflow on push or pull request,
+  # but only for the main branch
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+name: clippy & fmt & build & test
+
+env:
+  RUST_FMT: nightly-2023-04-01
+  RUST_VERSION: "1.66"
+
+jobs:
+  rustfmt:
+    name: Format
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        crates:
+          - registry/Cargo.toml
+          - staking-bank/Cargo.toml
+          - umbrella-feeds/Cargo.toml
+          - umbrella-feeds-reader/Cargo.toml
+          - dummy-contract/Cargo.toml
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install nightly toolchain with rustfmt available
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_FMT }}
+          override: true
+          components: rustfmt
+
+      - name: Run cargo fmt
+        uses: actions-rs/cargo@v1
+        with:
+          command: fmt
+          args: --manifest-path=${{ matrix.crates }} -- --check
+
+  clippy-schema:
+    name: Clippy on contracts with schema
+    runs-on: ubuntu-latest
+    needs: rustfmt
+    strategy:
+      matrix:
+        target:
+          - wasm32-unknown-unknown
+
+        crates:
+          - registry/Cargo.toml
+          - staking-bank/Cargo.toml
+          - umbrella-feeds/Cargo.toml
+          - umbrella-feeds-reader/Cargo.toml
+          - dummy-contract/Cargo.toml
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain with clippy available
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          target: ${{ matrix.target }}
+          override: true
+          components: clippy
+
+      - name: Run cargo clippy with schema and tests
+        uses: actions-rs/cargo@v1
+        with:
+          command: clippy
+          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --features concordium-std/build-schema --features concordium-std/wasm-test -- -D warnings
+
+  test-contracts:
+    name: Test contracts
+    runs-on: ubuntu-latest
+    needs: [rustfmt, clippy-schema]
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+
+        crates:
+          - registry/Cargo.toml
+          - staking-bank/Cargo.toml
+          - umbrella-feeds/Cargo.toml
+          - umbrella-feeds-reader/Cargo.toml
+          - dummy-contract/Cargo.toml
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Run cargo test
+        uses: actions-rs/cargo@v1
+        with:
+          command: test
+          # only run the library tests, no doc tests
+          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --lib
+
+  check-no-std-build:
+    name: Build on nightly,
+    runs-on: ubuntu-latest
+    needs: rustfmt
+    strategy:
+      matrix:
+        target:
+          - wasm32-unknown-unknown
+
+        crates:
+          - registry/Cargo.toml
+          - staking-bank/Cargo.toml
+          - umbrella-feeds/Cargo.toml
+          - umbrella-feeds-reader/Cargo.toml
+          - dummy-contract/Cargo.toml
+
+        features:
+          -
+          - concordium-std/build-schema
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+
+      - name: Install nightly toolchain with check available
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: nightly
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Run cargo check with no-std
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --no-default-features --features=${{ matrix.features }} --features wee_alloc
+
+  check-build:
+    name: Check build contracts
+    runs-on: ubuntu-latest
+    needs: [rustfmt, clippy-schema]
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+          - wasm32-unknown-unknown
+
+        crates:
+          - registry/Cargo.toml
+          - staking-bank/Cargo.toml
+          - umbrella-feeds/Cargo.toml
+          - umbrella-feeds-reader/Cargo.toml
+          - dummy-contract/Cargo.toml
+
+        features:
+          -
+          - concordium-std/build-schema
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v2
+        with:
+          submodules: true
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          target: ${{ matrix.target }}
+          override: true
+
+      - name: Run cargo build
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --features=${{ matrix.features }} --lib
+
