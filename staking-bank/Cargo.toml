@@ -12,6 +12,9 @@ description = "An oracle system"
 default = ["std"]
 std = ["concordium-std/std"]
 wee_alloc = ["concordium-std/wee_alloc"]
+development = []
+production = []
+sandbox = []
 
 [dependencies]
 concordium-std = {version = "8.0", default-features = false}

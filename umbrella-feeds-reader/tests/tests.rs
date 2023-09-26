@@ -8,7 +8,6 @@ use concordium_std::{
 };
 use registry::{AtomicUpdateParam, ImportContractsParam};
 use sha256::digest;
-use staking_bank::InitParamsStakingBank;
 use umbrella_feeds::{InitParamsUmbrellaFeeds, Message, PriceData, UpdateParams};
 use umbrella_feeds_reader::{InitParamsUmbrellaFeedsReader, SchemaTypeQuintWrapper};
 
@@ -131,10 +130,6 @@ fn setup_chain_and_contract() -> (
         )
         .expect("`staking_bank.wasm.v1` deployment should always succeed");
 
-    let input_parameter = InitParamsStakingBank {
-        validators_count: 15u8,
-    };
-
     let initialization_staking_bank = chain
         .contract_init(
             Signer::with_one_key(),
@@ -144,8 +139,7 @@ fn setup_chain_and_contract() -> (
                 amount: Amount::zero(),
                 mod_ref: deployment_staking_bank.module_reference,
                 init_name: OwnedContractName::new_unchecked("init_staking_bank".to_string()),
-                param: OwnedParameter::from_serial(&input_parameter)
-                    .expect("`input_parameter` should be a valid inut parameter"),
+                param: OwnedParameter::empty(),
             },
         )
         .expect("Initialization of `staking_bank` should always succeed");

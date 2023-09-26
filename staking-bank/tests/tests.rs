@@ -1,7 +1,6 @@
 use concordium_smart_contract_testing::*;
 use concordium_std::HashSha2256;
 use sha256::digest;
-use staking_bank::InitParamsStakingBank;
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([77u8; 32]);
 const OTHER_ACCOUNT: AccountAddress = AccountAddress([1u8; 32]);
@@ -31,10 +30,6 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess) {
         )
         .expect("`staking_bank.wasm.v1` deployment should always succeed");
 
-    let input_parameter = InitParamsStakingBank {
-        validators_count: 15u8,
-    };
-
     let initialization_staking_bank = chain
         .contract_init(
             Signer::with_one_key(),
@@ -44,8 +39,7 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess) {
                 amount: Amount::zero(),
                 mod_ref: deployment_staking_bank.module_reference,
                 init_name: OwnedContractName::new_unchecked("init_staking_bank".to_string()),
-                param: OwnedParameter::from_serial(&input_parameter)
-                    .expect("`InitContractsParam` should be a valid inut parameter"),
+                param: OwnedParameter::empty(),
             },
         )
         .expect("Initialization of `Staking_bank` should always succeed");
