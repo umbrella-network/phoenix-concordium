@@ -239,7 +239,7 @@ fn balances<S: HasStateApi>(
     }
 }
 
-/// View function that returns a boolean if an account address is an validator.
+/// View function that returns a true, if all of the provided account addresses are validators, otherwise a false.
 #[receive(
     contract = "staking_bank",
     name = "verifyValidators",

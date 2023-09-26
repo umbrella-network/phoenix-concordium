@@ -70,8 +70,8 @@ fn test_init() {
     assert_eq!(
         event_struct,
         OwnershipTransferredEvent {
-            new_owner: Address::from(ACC_ADDR_OWNER),
-            previous_owner: Address::from(AccountAddress([0u8; 32])),
+            new_owner: Some(Address::from(ACC_ADDR_OWNER)),
+            previous_owner: None,
         },
         "OwnershipTransferredEvent event is wrong"
     );
@@ -508,9 +508,10 @@ fn test_owner_functionalities() {
         )
         .expect("Should be able to query owner address");
 
-    let owner: Address = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let owner: Option<Address> =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(owner, Address::from(ACC_ADDR_OWNER));
+    assert_eq!(owner, Some(Address::from(ACC_ADDR_OWNER)));
 
     // Invoking 'transferOwnership'.
 
@@ -544,8 +545,8 @@ fn test_owner_functionalities() {
     assert_eq!(
         event_struct,
         OwnershipTransferredEvent {
-            new_owner: Address::from(OTHER_ACCOUNT),
-            previous_owner: Address::from(ACC_ADDR_OWNER),
+            new_owner: Some(Address::from(OTHER_ACCOUNT)),
+            previous_owner: Some(Address::from(ACC_ADDR_OWNER)),
         },
         "OwnershipTransferredEvent event is wrong"
     );
@@ -566,9 +567,10 @@ fn test_owner_functionalities() {
         )
         .expect("Should be able to query owner address");
 
-    let owner: Address = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let owner: Option<Address> =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(owner, Address::from(OTHER_ACCOUNT));
+    assert_eq!(owner, Some(Address::from(OTHER_ACCOUNT)));
 
     // Invoking 'renounceOwnership'.
 
@@ -602,8 +604,8 @@ fn test_owner_functionalities() {
     assert_eq!(
         event_struct,
         OwnershipTransferredEvent {
-            new_owner: Address::from(AccountAddress([0u8; 32])),
-            previous_owner: Address::from(OTHER_ACCOUNT),
+            new_owner: None,
+            previous_owner: Some(Address::from(OTHER_ACCOUNT)),
         },
         "OwnershipTransferredEvent event is wrong"
     );
@@ -624,7 +626,8 @@ fn test_owner_functionalities() {
         )
         .expect("Should be able to query owner address");
 
-    let owner: Address = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let owner: Option<Address> =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(owner, Address::from(AccountAddress([0u8; 32])));
+    assert_eq!(owner, None);
 }

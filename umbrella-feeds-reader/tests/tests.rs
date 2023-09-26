@@ -15,17 +15,17 @@ use umbrella_feeds_reader::{InitParamsUmbrellaFeedsReader, SchemaTypeQuintWrappe
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(100000000000);
 
-const SIGNATURE_1: SignatureEd25519 = SignatureEd25519([
-    178, 125, 64, 87, 0, 211, 149, 8, 82, 206, 97, 250, 51, 120, 164, 125, 56, 15, 0, 108, 11, 226,
-    221, 138, 134, 225, 148, 70, 147, 154, 232, 245, 80, 4, 96, 50, 78, 132, 198, 56, 42, 88, 127,
-    249, 42, 9, 118, 92, 221, 35, 161, 199, 140, 6, 231, 123, 210, 89, 81, 236, 147, 162, 207, 14,
+const SIGNATURE_ETH_CCD_FEEDS_1: SignatureEd25519 = SignatureEd25519([
+    247, 122, 19, 218, 9, 77, 56, 34, 50, 44, 178, 93, 116, 82, 78, 117, 197, 113, 132, 100, 48,
+    144, 40, 108, 171, 20, 163, 38, 7, 18, 21, 213, 26, 4, 237, 91, 194, 195, 42, 254, 11, 118, 26,
+    252, 64, 30, 119, 194, 70, 118, 36, 36, 155, 112, 70, 203, 117, 89, 122, 234, 80, 227, 103, 11,
 ]);
 
-const SIGNATURE_2: SignatureEd25519 = SignatureEd25519([
-    145, 105, 226, 192, 112, 119, 174, 218, 166, 87, 242, 163, 161, 141, 220, 157, 49, 226, 160,
-    186, 10, 221, 58, 80, 143, 126, 124, 130, 226, 49, 6, 232, 166, 33, 254, 146, 17, 76, 172, 117,
-    53, 40, 100, 222, 46, 213, 16, 160, 52, 6, 219, 202, 41, 80, 231, 80, 190, 152, 188, 117, 208,
-    225, 233, 6,
+const SIGNATURE_ETH_CCD_FEEDS_2: SignatureEd25519 = SignatureEd25519([
+    69, 94, 133, 241, 119, 150, 94, 22, 187, 40, 182, 90, 236, 131, 124, 222, 57, 144, 203, 9, 26,
+    64, 60, 39, 130, 244, 200, 243, 143, 216, 227, 222, 67, 67, 121, 49, 15, 115, 209, 177, 128,
+    153, 145, 29, 85, 116, 91, 71, 248, 215, 200, 16, 66, 17, 226, 193, 234, 8, 17, 95, 143, 240,
+    136, 10,
 ]);
 
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
@@ -236,7 +236,10 @@ fn test_update_price_feed() {
     // Creating signer_1's signature map
 
     let mut inner_signature_map = BTreeMap::new();
-    inner_signature_map.insert(0u8, concordium_std::Signature::Ed25519(SIGNATURE_1));
+    inner_signature_map.insert(
+        0u8,
+        concordium_std::Signature::Ed25519(SIGNATURE_ETH_CCD_FEEDS_1),
+    );
 
     let mut signature_map = BTreeMap::new();
     signature_map.insert(
@@ -249,7 +252,10 @@ fn test_update_price_feed() {
     // Creating signer_2's signature map
 
     let mut inner_signature_map_signer_2 = BTreeMap::new();
-    inner_signature_map_signer_2.insert(0u8, concordium_std::Signature::Ed25519(SIGNATURE_2));
+    inner_signature_map_signer_2.insert(
+        0u8,
+        concordium_std::Signature::Ed25519(SIGNATURE_ETH_CCD_FEEDS_2),
+    );
 
     let mut signature_map_signer_2 = BTreeMap::new();
     signature_map_signer_2.insert(
@@ -279,7 +285,7 @@ fn test_update_price_feed() {
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization_umbrella_feeds.contract_address,
-            chain_id: 0,
+            chain_id: 49228,
             price_feed: vec![(digest(String::from("ETH-CCD")).parse().unwrap(), price_data)],
         },
     };

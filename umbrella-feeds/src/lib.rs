@@ -17,7 +17,7 @@ use core::fmt::Debug;
 const NAME: &str = "UmbrellaFeeds";
 
 /// The concept of a CHAIN_ID does not exist on Concordium but kept for consistency.
-const CHAIN_ID: u16 = 0;
+const CHAIN_ID: u16 = 49228;
 
 #[derive(Serialize, SchemaType, Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PriceData {
@@ -195,13 +195,14 @@ pub struct UpgradeParams {
     pub migrate: Option<(OwnedEntrypointName, OwnedParameter)>,
 }
 
-/// Upgrade this smart contract instance to a new module and call optionally a
-/// migration function after the upgrade. This is a hook function to enable `atomicUpdate` via the registry contract.
+/// This function is a hook function intended to be invoked via the `atomicUpdate` function in the registry contract.
+/// This function upgrades this smart contract instance to a new module and calls optionally a
+/// migration function after the upgrade.
 ///
 /// It rejects if:
 /// - Sender is not the registry contract instance.
 /// - It fails to parse the parameter.
-/// - If the ugrade fails.
+/// - If the upgrade fails.
 /// - If the migration invoke fails.
 ///
 /// This function is marked as `low_level`. This is **necessary** since the
@@ -330,17 +331,15 @@ fn contract_view_message_hash<S: HasStateApi>(
     // or sign a message (in that case the prepend is `account` address and 8 zero
     // bytes). Hence, the 8 zero bytes ensure that the user does not accidentally
     // sign a transaction. The account nonce is of type u64 (8 bytes).
-    let mut msg_prepend = vec![0; 32 + 8];
+    let mut msg_prepend = vec![0u8; 32 + 8];
 
     let mut message_hashes: Vec<[u8; 32]> = vec![];
 
     for i in 0..param.signers_and_signatures.len() {
         let signer = param.signers_and_signatures[i].0;
 
-        // Prepend the `account` address of the signer.
+        // Prepend the `account` address of the signer
         msg_prepend[0..32].copy_from_slice(signer.as_ref());
-        // Prepend 8 zero bytes.
-        msg_prepend[32..40].copy_from_slice(&[0u8; 8]);
         // Calculate the message hash.
         message_hashes.push(
             crypto_primitives
@@ -373,15 +372,17 @@ fn verify_signatures<S: HasStateApi>(
         CustomContractError::NotEnoughSignatures
     );
 
-    let mut prev_signer = AccountAddress([0u8; 32]);
+    let mut prev_signer: Option<AccountAddress> = None;
 
     let message_hashes = contract_view_message_hash(ctx, host, crypto_primitives)?;
 
-    let mut validators: Vec<AccountAddress> = vec![];
+    let required_signatures = host.state().required_signatures;
+
+    let mut validators: Vec<AccountAddress> = Vec::with_capacity(required_signatures as usize);
 
     // To save gas we check only required number of signatures.
     // The case, where you can have part of signatures invalid but still enough valid in total is not supported.
-    for i in 0..host.state().required_signatures {
+    for i in 0..required_signatures {
         let signer = param.signers_and_signatures[i as usize].0;
         let signature = &param.signers_and_signatures[i as usize].1;
 
@@ -391,13 +392,13 @@ fn verify_signatures<S: HasStateApi>(
         ensure!(valid_signature, CustomContractError::WrongSignature);
 
         ensure!(
-            prev_signer < signer,
+            prev_signer < Some(signer),
             CustomContractError::SignaturesOutOfOrder
         );
 
         validators.push(signer);
 
-        prev_signer = signer;
+        prev_signer = Some(signer);
     }
 
     let are_valid_signers = host.invoke_contract_read_only::<Vec<AccountAddress>>(
@@ -457,19 +458,22 @@ fn update<S: HasStateApi>(
 
     for element in message.price_feed {
         let price_key: HashSha2256 = element.0;
-        let price_data: PriceData = element.1;
+        let new_price_data: PriceData = element.1;
+
+        let mut stored_price_data = host
+            .state_mut()
+            .prices
+            .entry(price_key)
+            .or_insert_with(PriceData::default);
 
         // We do not allow for older prices.
         // This prevents replay attacks by preventing reusing of signatures at the same time.
-        let old_price_data = host.state().prices.get(&price_key).map(|s| *s);
-        if let Some(old_price_data) = old_price_data {
-            ensure!(
-                old_price_data.timestamp < price_data.timestamp,
-                CustomContractError::OldData
-            );
-        }
+        ensure!(
+            stored_price_data.timestamp < new_price_data.timestamp,
+            CustomContractError::OldData
+        );
 
-        host.state_mut().prices.insert(price_key, price_data);
+        *stored_price_data = new_price_data;
     }
 
     Ok(())
@@ -499,7 +503,7 @@ fn get_name<S: HasStateApi>(
     parameter = "Vec<HashSha2256>",
     return_value = "Vec<PriceData>"
 )]
-fn get_mny_price_data<S: HasStateApi>(
+fn get_many_price_data<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<Vec<PriceData>> {
@@ -509,10 +513,10 @@ fn get_mny_price_data<S: HasStateApi>(
 
     for key_hash in key_hashes {
         price_data.push(
-            host.state()
+            *host
+                .state()
                 .prices
                 .get(&key_hash)
-                .map(|s| *s)
                 .ok_or(CustomContractError::FeedNotExist)?,
         );
     }
@@ -588,11 +592,10 @@ fn get_price_data<S: HasStateApi>(
 ) -> ReceiveResult<PriceData> {
     let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
 
-    let price_data = host
+    let price_data = *host
         .state()
         .prices
         .get(&key_hash)
-        .map(|s| *s)
         .ok_or(CustomContractError::FeedNotExist)?;
 
     Ok(price_data)
@@ -611,11 +614,10 @@ fn get_price<S: HasStateApi>(
 ) -> ReceiveResult<u128> {
     let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
 
-    let price_data = host
+    let price_data = *host
         .state()
         .prices
         .get(&key_hash)
-        .map(|s| *s)
         .ok_or(CustomContractError::FeedNotExist)?;
 
     Ok(price_data.price)
@@ -634,11 +636,10 @@ fn get_price_timestamp<S: HasStateApi>(
 ) -> ReceiveResult<Timestamp> {
     let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
 
-    let price_data = host
+    let price_data = *host
         .state()
         .prices
         .get(&key_hash)
-        .map(|s| *s)
         .ok_or(CustomContractError::FeedNotExist)?;
 
     Ok(price_data.timestamp)
@@ -660,11 +661,10 @@ fn get_price_timestamp_heartbeat<S: HasStateApi>(
 ) -> ReceiveResult<SchemTypeTripleWrapper> {
     let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
 
-    let price_data = host
+    let price_data = *host
         .state()
         .prices
         .get(&key_hash)
-        .map(|s| *s)
         .ok_or(CustomContractError::FeedNotExist)?;
 
     Ok(SchemTypeTripleWrapper(

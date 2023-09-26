@@ -17,7 +17,7 @@ use core::fmt::Debug;
 #[concordium(state_parameter = "S")]
 struct State<S: HasStateApi> {
     // The owner of this contract. It can register/override/atomically upgrade contract addresses in this registry.
-    owner: Address,
+    owner: Option<Address>,
     // Mapping from key to contract address. The key/name of a contract is calculated by hashing its human-readable name.
     registry: StateMap<HashSha2256, ContractAddress, S>,
 }
@@ -38,8 +38,8 @@ enum CustomContractError {
     UnauthorizedAccount, // -5
     /// Failed to invoke a contract.
     InvokeContractError, // -6
-    /// Failed to provide a valid address as the owner.
-    InvalidOwner, // -7
+    /// Failed because this contract has no owner anymore (ownership was renounced).
+    NoOwner, // -7
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -84,9 +84,9 @@ pub struct LogRegisteredEvent {
 #[derive(Debug, Serialize, SchemaType, PartialEq, Eq)]
 pub struct OwnershipTransferredEvent {
     /// The previous owner's address.
-    pub previous_owner: Address,
+    pub previous_owner: Option<Address>,
     /// The new owner's address.
-    pub new_owner: Address,
+    pub new_owner: Option<Address>,
 }
 
 /// The init function that creates a new registry smart contract.
@@ -100,13 +100,13 @@ fn init<S: HasStateApi>(
 
     // Log OwnershipTransferred event
     logger.log(&Event::OwnershipTransferred(OwnershipTransferredEvent {
-        new_owner: owner,
-        previous_owner: Address::from(AccountAddress([0u8; 32])),
+        new_owner: Some(owner),
+        previous_owner: None,
     }))?;
 
     Ok(State {
         registry: state_builder.new_map(),
-        owner,
+        owner: Some(owner),
     })
 }
 
@@ -147,7 +147,7 @@ fn import_addresses<S: HasStateApi>(
 ) -> Result<(), CustomContractError> {
     ensure_eq!(
         ctx.sender(),
-        host.state().owner,
+        host.state().owner.ok_or(CustomContractError::NoOwner)?,
         CustomContractError::UnauthorizedAccount
     );
 
@@ -195,7 +195,7 @@ fn import_contracts<S: HasStateApi>(
 ) -> Result<(), CustomContractError> {
     ensure_eq!(
         ctx.sender(),
-        host.state().owner,
+        host.state().owner.ok_or(CustomContractError::NoOwner)?,
         CustomContractError::UnauthorizedAccount
     );
 
@@ -263,7 +263,7 @@ fn atomic_update<S: HasStateApi>(
 ) -> Result<(), CustomContractError> {
     ensure_eq!(
         ctx.sender(),
-        host.state().owner,
+        host.state().owner.ok_or(CustomContractError::NoOwner)?,
         CustomContractError::UnauthorizedAccount
     );
 
@@ -444,11 +444,15 @@ fn string_to_hash_sha2256<S: HasStateApi>(
 }
 
 /// View function that returns the owner address.
-#[receive(contract = "registry", name = "owner", return_value = "Address")]
+#[receive(
+    contract = "registry",
+    name = "owner",
+    return_value = "Option<Address>"
+)]
 fn owner<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<Address> {
+) -> ReceiveResult<Option<Address>> {
     Ok(host.state().owner)
 }
 
@@ -467,18 +471,16 @@ fn renounce_ownership<S: HasStateApi>(
 ) -> Result<(), CustomContractError> {
     ensure_eq!(
         ctx.sender(),
-        host.state().owner,
+        host.state().owner.ok_or(CustomContractError::NoOwner)?,
         CustomContractError::UnauthorizedAccount
     );
 
-    let new_owner: Address = Address::from(AccountAddress([0u8; 32]));
-
-    let previous_owner = host.state_mut().owner;
-    host.state_mut().owner = new_owner;
+    let previous_owner = host.state().owner;
+    host.state_mut().owner = None;
 
     // Log OwnershipTransferred event
     logger.log(&Event::OwnershipTransferred(OwnershipTransferredEvent {
-        new_owner,
+        new_owner: None,
         previous_owner,
     }))?;
 
@@ -501,23 +503,18 @@ fn transfer_ownership<S: HasStateApi>(
 ) -> Result<(), CustomContractError> {
     ensure_eq!(
         ctx.sender(),
-        host.state().owner,
+        host.state().owner.ok_or(CustomContractError::NoOwner)?,
         CustomContractError::UnauthorizedAccount
     );
 
     let new_owner: Address = ctx.parameter_cursor().get()?;
 
-    ensure!(
-        new_owner != Address::from(AccountAddress([0u8; 32])),
-        CustomContractError::InvalidOwner
-    );
-
-    let previous_owner = host.state_mut().owner;
-    host.state_mut().owner = new_owner;
+    let previous_owner = host.state().owner;
+    host.state_mut().owner = Some(new_owner);
 
     // Log OwnershipTransferred event
     logger.log(&Event::OwnershipTransferred(OwnershipTransferredEvent {
-        new_owner,
+        new_owner: Some(new_owner),
         previous_owner,
     }))?;
 
