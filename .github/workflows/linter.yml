@@ -91,7 +91,7 @@ jobs:
 
         crates:
           - registry/Cargo.toml
-          - staking-bank/Cargo.toml
+          - staking-bank/Cargo.toml --features production
           - umbrella-feeds/Cargo.toml
           - umbrella-feeds-reader/Cargo.toml
           - dummy-contract/Cargo.toml
@@ -126,7 +126,9 @@ jobs:
 
         crates:
           - registry/Cargo.toml
-          - staking-bank/Cargo.toml
+          - staking-bank/Cargo.toml --features production
+          - staking-bank/Cargo.toml --features development
+          - staking-bank/Cargo.toml --features sandbox
           - umbrella-feeds/Cargo.toml
           - umbrella-feeds-reader/Cargo.toml
           - dummy-contract/Cargo.toml
@@ -165,7 +167,9 @@ jobs:
 
         crates:
           - registry/Cargo.toml
-          - staking-bank/Cargo.toml
+          - staking-bank/Cargo.toml --features production
+          - staking-bank/Cargo.toml --features development
+          - staking-bank/Cargo.toml --features sandbox
           - umbrella-feeds/Cargo.toml
           - umbrella-feeds-reader/Cargo.toml
           - dummy-contract/Cargo.toml
