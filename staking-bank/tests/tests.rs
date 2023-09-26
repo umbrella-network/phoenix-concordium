@@ -1,7 +1,7 @@
 use concordium_smart_contract_testing::*;
 use concordium_std::HashSha2256;
 use sha256::digest;
-use staking_bank::{InitParamsStakingBank, State};
+use staking_bank::InitParamsStakingBank;
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([77u8; 32]);
 const OTHER_ACCOUNT: AccountAddress = AccountAddress([1u8; 32]);
@@ -288,34 +288,6 @@ fn test_get_name() {
 #[test]
 fn test_init() {
     let (chain, initialization_staking_bank) = setup_chain_and_contract();
-
-    // Checking state values.
-
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_staking_bank.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked("staking_bank.view".to_string()),
-                message: OwnedParameter::from_serial(&KEY_HASH_1)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .expect("Should be able to query contract state");
-
-    let state: State = from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    assert_eq!(
-        state,
-        State {
-            number_of_validators: 15,
-            total_supply: 15000000000000000000,
-            one: 1000000000000000000,
-        }
-    );
 
     // Checking `NUMBER_OF_VALIDATORS`.
 

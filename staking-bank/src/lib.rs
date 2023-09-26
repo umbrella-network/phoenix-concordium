@@ -22,15 +22,15 @@ const VALIDATOR_12: AccountAddress = AccountAddress([12u8; 32]);
 const VALIDATOR_13: AccountAddress = AccountAddress([13u8; 32]);
 const VALIDATOR_14: AccountAddress = AccountAddress([14u8; 32]);
 
-#[derive(Serial, Deserial, Debug, SchemaType, PartialEq, Eq)]
-pub struct State {
-    /// The number of validators.
-    pub number_of_validators: u8,
-    /// total supply = number_of_validators * one.
-    pub total_supply: u64,
-    /// one = 1 * 10^18.
-    pub one: u64,
-}
+/// The number of validators.
+const NUMBER_OF_VALIDATORS: u8 = 15;
+/// total supply = number_of_validators * ONE.
+const TOTAL_SUPPLY: u64 = 15 * 1000000000000000000u64;
+/// one = 1 * 10^18.
+const ONE: u64 = 1000000000000000000u64;
+
+#[derive(Serial, Deserial)]
+pub struct State {}
 
 /// All smart contract errors.
 #[derive(Debug, PartialEq, Eq, Reject, Serial, SchemaType)]
@@ -122,8 +122,6 @@ fn init<S: HasStateApi>(
 ) -> InitResult<State> {
     let param: InitParamsStakingBank = ctx.parameter_cursor().get()?;
 
-    let one = 1000000000000000000u64;
-
     let list = _addresses();
 
     ensure_eq!(
@@ -139,11 +137,7 @@ fn init<S: HasStateApi>(
         );
     }
 
-    Ok(State {
-        number_of_validators: param.validators_count,
-        total_supply: param.validators_count as u64 * one,
-        one,
-    })
+    Ok(State {})
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `NUMBER_OF_VALIDATORS`.
@@ -154,36 +148,27 @@ fn init<S: HasStateApi>(
 )]
 fn number_of_validators<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u8> {
-    Ok(host.state().number_of_validators)
+    Ok(NUMBER_OF_VALIDATORS)
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `TOTAL_SUPPLY`.
 #[receive(contract = "staking_bank", name = "TOTAL_SUPPLY", return_value = "u64")]
 fn total_supply_1<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
-    Ok(host.state().total_supply)
+    Ok(TOTAL_SUPPLY)
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `ONE`.
 #[receive(contract = "staking_bank", name = "ONE", return_value = "u64")]
 fn one<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
-    Ok(host.state().one)
-}
-
-/// View function that returns the content of the state for debugging purposes.
-#[receive(contract = "staking_bank", name = "view", return_value = "State")]
-fn view<'b, S: HasStateApi>(
-    _ctx: &impl HasReceiveContext,
-    host: &'b impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<&'b State> {
-    Ok(host.state())
+    Ok(ONE)
 }
 
 /// View function that returns validator's URL (as well as the inputted account address). The function throws an error if the address is not a validator.
@@ -228,12 +213,12 @@ fn validators<S: HasStateApi>(
 )]
 fn balances<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
     let account: AccountAddress = ctx.parameter_cursor().get()?;
 
     if _is_validator(account) {
-        Ok(host.state().one)
+        Ok(ONE)
     } else {
         Ok(0u64)
     }
@@ -269,9 +254,9 @@ fn verify_validators<S: HasStateApi>(
 )]
 fn get_number_of_validators<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u8> {
-    Ok(host.state().number_of_validators)
+    Ok(NUMBER_OF_VALIDATORS)
 }
 
 /// View function that returns all validator addresses.
@@ -295,14 +280,11 @@ fn get_addresses<S: HasStateApi>(
 )]
 fn get_balances<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<Vec<u64>> {
-    let one = host.state().one;
-    let number_of_validators = host.state().number_of_validators;
-
-    let mut balances = Vec::with_capacity(number_of_validators as usize);
-    for _i in 0..number_of_validators {
-        balances.push(one)
+    let mut balances = Vec::with_capacity(NUMBER_OF_VALIDATORS as usize);
+    for _i in 0..NUMBER_OF_VALIDATORS {
+        balances.push(ONE)
     }
 
     Ok(balances)
@@ -332,12 +314,12 @@ fn addresses<S: HasStateApi>(
 )]
 fn balance_of<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
     let _account: AccountAddress = ctx.parameter_cursor().get()?;
 
     if _is_validator(_account) {
-        Ok(host.state().one)
+        Ok(ONE)
     } else {
         Ok(0u64)
     }
@@ -347,9 +329,9 @@ fn balance_of<S: HasStateApi>(
 #[receive(contract = "staking_bank", name = "totalSupply", return_value = "u64")]
 fn total_supply_2<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
-    Ok(host.state().total_supply)
+    Ok(TOTAL_SUPPLY)
 }
 
 /// View function that returns the key hash of this contract.

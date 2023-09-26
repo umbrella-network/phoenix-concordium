@@ -318,7 +318,7 @@ fn contract_view_message_hash<S: HasStateApi>(
 
     // The input parameter is `UpdateParams` but we have only read the initial part
     // of it with `UpdateParamsPartial` so far. We read in the `message` now.
-    // `(cursor.size() - cursor.cursor_position()` is the length of the message in
+    // `(cursor.size() - cursor.cursor_position())` is the length of the message in
     // bytes.
     let mut message_bytes = vec![0; (cursor.size() - cursor.cursor_position()) as usize];
 
