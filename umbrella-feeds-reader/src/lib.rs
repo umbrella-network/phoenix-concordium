@@ -1,6 +1,6 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
-//! # Umbrella feeds
+//! # Umbrella feeds reader
 //!
 //! This is an optional price reader for just one feed.
 //! For maximum gas optimization it is recommended to use UmbrellaFeeds directly.
