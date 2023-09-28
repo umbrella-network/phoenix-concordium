@@ -9,7 +9,7 @@ pub struct PriceData {
     /// This is a placeholder, that can be used for some additional data.
     /// It is only used as marker for removed data (when data == u8::MAX) at the moment.
     pub data: u8,
-    /// The heartbeat specifies how often the price data will be refreshed in case the price stays flat.
+    /// The heartbeat specifies the interval in seconds that the price data will be refreshed in case the price stays flat.
     pub heartbeat: u64,
     /// It is the time when the validators run the consensus to decide on the price data.
     pub timestamp: Timestamp,

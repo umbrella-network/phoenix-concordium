@@ -15,7 +15,7 @@ pub struct PriceData {
     /// This is a placeholder, that can be used for some additional data.
     /// It is only used as marker for removed data (when data == u8::MAX) at the moment.
     pub data: u8,
-    /// The heartbeat specifies how often the price data will be refreshed in case the price stays flat.
+    /// The heartbeat specifies the interval in seconds that the price data will be refreshed in case the price stays flat.
     /// ATTENTION: u64 is used here instead of u24 (different from the original solidity smart contracts).
     pub heartbeat: u64,
     /// It is the time the validators run consensus to decide on the price data.
@@ -90,15 +90,13 @@ fn init<S: HasStateApi>(
         CustomContractError::EmptyAddress.into()
     );
 
-    let key_hash = crypto_primitives
-        .hash_sha2_256(param.description.as_bytes())
-        .0;
+    let key_hash = crypto_primitives.hash_sha2_256(param.description.as_bytes());
 
     Ok(State {
         registry: param.registry,
         decimals: param.decimals,
         umbrella_feeds: param.umbrella_feeds,
-        key: HashSha2256(key_hash),
+        key: key_hash,
         description: param.description,
     })
 }
@@ -173,7 +171,13 @@ fn decimals<S: HasStateApi>(
 }
 
 #[derive(SchemaType, Serial, Deserial, Debug, PartialEq, Eq)]
-pub struct SchemaTypeQuintWrapper(pub u8, pub u128, pub u8, pub Timestamp, pub u8);
+pub struct LatestRoundDataReturnValue {
+    pub round_id: u8,
+    pub answer: u128,
+    pub started_at: u8,
+    pub updated_at: Timestamp,
+    pub answered_in_round: u8,
+}
 
 /// This entry point was inspired by the chainlink interface for easy migration. NOTE: not all returned data fields are covered.
 /// This entry point throws an exception when there is no data, instead of returning unset values, which could be misinterpreted as actual reported values.
@@ -181,12 +185,12 @@ pub struct SchemaTypeQuintWrapper(pub u8, pub u128, pub u8, pub Timestamp, pub u
 #[receive(
     contract = "umbrella_feeds_reader",
     name = "latestRoundData",
-    return_value = "SchemaTypeQuintWrapper"
+    return_value = "LatestRoundDataReturnValue"
 )]
 fn latest_round_data<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<SchemaTypeQuintWrapper> {
+) -> ReceiveResult<LatestRoundDataReturnValue> {
     let hash: HashSha2256 = host.state().key;
 
     let price_data = host.invoke_contract_read_only::<HashSha2256>(
@@ -200,17 +204,17 @@ fn latest_round_data<S: HasStateApi>(
         .ok_or(CustomContractError::InvokeContractError)?
         .get()?;
 
-    Ok(SchemaTypeQuintWrapper(
-        0u8,
-        price_data.price,
-        0u8,
-        price_data.timestamp,
-        0u8,
-    ))
+    Ok(LatestRoundDataReturnValue {
+        round_id: 0u8,
+        answer: price_data.price,
+        started_at: 0u8,
+        updated_at: price_data.timestamp,
+        answered_in_round: 0u8,
+    })
 }
 
 /// This is main endpoint for reading the feed. The feed is read from the umbrella_feeds contract using the hardcoded `key` in this contract.
-/// In case the feed does not exist, this entry point throws.s
+/// In case the feed does not exist, this entry point throws.
 /// There is no fallback function since the native upgrade mechanism on Concordium allows to upgrade of the `UmbrellaFeeds` contract without changing its contract address.
 #[receive(
     contract = "umbrella_feeds_reader",

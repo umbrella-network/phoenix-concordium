@@ -267,8 +267,7 @@ fn test_get_name() {
                 amount: Amount::zero(),
                 address: initialization_staking_bank.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("staking_bank.getName".to_string()),
-                message: OwnedParameter::from_serial(&KEY_HASH_1)
-                    .expect("Should be a valid inut parameter"),
+                message: OwnedParameter::empty(),
             },
         )
         .expect("Should be able to query contract state");
@@ -415,12 +414,12 @@ fn test_init() {
         )
         .expect("Should be able to query value");
 
-    let value: Vec<AccountAddress> =
+    let value: [AccountAddress; 15] =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
     assert_eq!(
         value,
-        vec![
+        [
             AccountAddress([0u8; 32]),
             AccountAddress([1u8; 32]),
             AccountAddress([2u8; 32]),

@@ -6,7 +6,7 @@ version = "1.0.0"
 edition = "2021"
 license = "MPL-2.0"
 authors = [ "Concordium <developers@concordium.com>" ]
-description = "An oracle system"
+description = "An oracle system. This contract is used only in the integration tests."
 
 [features]
 default = ["std"]

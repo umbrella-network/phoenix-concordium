@@ -6,7 +6,7 @@ version = "1.0.0"
 edition = "2021"
 license = "MPL-2.0"
 authors = [ "Concordium <developers@concordium.com>" ]
-description = "An oracle system"
+description = "An oracle system. This staking bank contract is a decentralised registry of the validators."
 
 [features]
 default = ["std"]

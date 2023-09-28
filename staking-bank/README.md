@@ -1,3 +1,3 @@
 ## Staking bank contract
 
-TODO
+The staking bank is a decentralised registry of validators.

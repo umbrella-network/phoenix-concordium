@@ -9,7 +9,7 @@ use concordium_std::{
 use registry::{AtomicUpdateParam, ImportContractsParam};
 use sha256::digest;
 use umbrella_feeds::{InitParamsUmbrellaFeeds, Message, PriceData, UpdateParams};
-use umbrella_feeds_reader::{InitParamsUmbrellaFeedsReader, SchemaTypeQuintWrapper};
+use umbrella_feeds_reader::{InitParamsUmbrellaFeedsReader, LatestRoundDataReturnValue};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(100000000000);
@@ -259,7 +259,7 @@ fn test_update_price_feed() {
         },
     );
 
-    // Creating input parameter for pice data update
+    // Creating input parameter for price data update
 
     let update_param = UpdateParams {
         signers_and_signatures: vec![
@@ -592,11 +592,16 @@ fn test_update_price_feed() {
         )
         .expect("Should be able to query latestRoundData");
 
-    let stored_price_data: SchemaTypeQuintWrapper =
+    let stored_price_data: LatestRoundDataReturnValue =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    let expected_price_data =
-        SchemaTypeQuintWrapper(0u8, price_data.price, 0u8, price_data.timestamp, 0u8);
+    let expected_price_data = LatestRoundDataReturnValue {
+        round_id: 0u8,
+        answer: price_data.price,
+        started_at: 0u8,
+        updated_at: price_data.timestamp,
+        answered_in_round: 0u8,
+    };
 
     assert_eq!(stored_price_data, expected_price_data);
 

@@ -13,9 +13,6 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-/// The name of this contract.
-const NAME: &str = "UmbrellaFeeds";
-
 /// The concept of a CHAIN_ID does not exist on Concordium but kept for consistency.
 const CHAIN_ID: u16 = 49228;
 
@@ -24,7 +21,7 @@ pub struct PriceData {
     /// This is a placeholder, that can be used for some additional data.
     /// It is only used as marker for removed data (when data == u8::MAX) at the moment.
     pub data: u8,
-    /// The heartbeat specifies how often the price data will be refreshed in case the price stays flat.
+    /// The heartbeat specifies the interval in seconds that the price data will be refreshed in case the price stays flat.
     /// ATTENTION: u64 is used here instead of u24 (different from the original solidity smart contracts).
     pub heartbeat: u64,
     /// It is the time the validators run consensus to decide on the price data.
@@ -52,7 +49,7 @@ struct State<S> {
     registry: ContractAddress,
     /// StakingBank contract where list of validators is stored.
     staking_bank: ContractAddress,
-    /// Minimal number of signatures required for accepting price submission (PoA).
+    /// Minimal number of signatures required for accepting price submission (Proof-of-Authority = PoA).
     required_signatures: u16,
     /// Decimals for prices stored in this contract.
     decimals: u8,
@@ -75,40 +72,38 @@ enum CustomContractError {
     InvokeContractError, // -4
     /// Failed to provide enough signatures.
     InvalidRequiredSignatures, // -5
-    /// Failed because the destroy function is not supported.
-    NotSupported, // -6
     /// Failed to because the chain id is wrong.
-    ChainIdMismatch, // -7
+    ChainIdMismatch, // -6
     /// Failed to because the data is outdated.
-    OldData, // -8
+    OldData, // -7
     /// Failed because it is the wrong contract.
-    WrongContract, // -9
+    WrongContract, // -8
     /// Failed because the signature is outdated.
-    Expired, // -10
+    Expired, // -9
     /// Failed because the feed does not exist.
-    FeedNotExist, // -11
+    FeedNotExist, // -10
     /// Failed because of unauthorized invoke of the entry point.
-    Unauthorized, // -12
+    Unauthorized, // -11
     /// Upgrade failed because the new module does not exist.
-    FailedUpgradeMissingModule, // -13
+    FailedUpgradeMissingModule, // -12
     /// Upgrade failed because the new module does not contain a contract with a
     /// matching name.
-    FailedUpgradeMissingContract, // -14
+    FailedUpgradeMissingContract, // -13
     /// Upgrade failed because the smart contract version of the module is not
     /// supported.
-    FailedUpgradeUnsupportedModuleVersion, // -15
+    FailedUpgradeUnsupportedModuleVersion, // -14
     /// Failed to verify signature because data was malformed.
-    MalformedData, // -16
+    MalformedData, // -15
     /// Failed signature verification because of an invalid signature.
-    WrongSignature, // -17
+    WrongSignature, // -16
     /// Failed because the account is missing on the chain.
-    MissingAccount, // -18
+    MissingAccount, // -17
     /// Failed because not enough signatures were provided.
-    NotEnoughSignatures, // -19
+    NotEnoughSignatures, // -18
     /// Failed because the signatures are not in order.
-    SignaturesOutOfOrder, // -20
+    SignaturesOutOfOrder, // -19
     /// Failed because one of the given signers is not a validator.
-    InvalidSigner, // -21
+    InvalidSigner, // -20
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -226,9 +221,8 @@ fn upgrade_natively<S: HasStateApi>(
     let state: State<S> = host.state().read_root()?;
 
     // Only the registry can upgrade this contract.
-    ensure_eq!(
-        ctx.sender(),
-        Address::Contract(state.registry),
+    ensure!(
+        ctx.sender().matches_contract(&state.registry),
         CustomContractError::Unauthorized
     );
 
@@ -249,19 +243,6 @@ fn upgrade_natively<S: HasStateApi>(
     }
 
     Ok(())
-}
-
-#[receive(
-    contract = "umbrella_feeds",
-    name = "destroy",
-    error = "CustomContractError",
-    mutable
-)]
-fn destroy<S: HasStateApi>(
-    _ctx: &impl HasReceiveContext,
-    _host: &mut impl HasHost<State<S>, StateApiType = S>,
-) -> Result<(), CustomContractError> {
-    bail!(CustomContractError::NotSupported);
 }
 
 /// Part of the parameter type for the contract function `update`.
@@ -485,17 +466,17 @@ fn update<S: HasStateApi>(
 #[receive(
     contract = "umbrella_feeds",
     name = "getName",
-    return_value = "HashSha2256",
-    crypto_primitives
+    return_value = "HashSha2256"
 )]
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State<S>, StateApiType = S>,
-    crypto_primitives: &impl HasCryptoPrimitives,
 ) -> ReceiveResult<HashSha2256> {
-    let key_hash = crypto_primitives.hash_sha2_256(NAME.as_bytes()).0;
-
-    Ok(HashSha2256(key_hash))
+    // Returns `hash_sha2_256("UmbrellaFeeds")`
+    Ok(HashSha2256([
+        185, 40, 5, 213, 65, 172, 57, 201, 251, 100, 11, 109, 182, 167, 24, 13, 49, 242, 9, 4, 4,
+        214, 200, 104, 0, 53, 188, 230, 38, 18, 193, 57,
+    ]))
 }
 
 /// View function that returns many price data. It throws if price feed does not exist.
