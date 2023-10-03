@@ -3,8 +3,6 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-const NAME: &str = "MyName";
-
 #[derive(Serial, Deserial)]
 struct State {}
 
@@ -26,15 +24,11 @@ fn init<S: HasStateApi>(
 #[receive(
     contract = "dummy_contract",
     name = "getName",
-    return_value = "HashSha2256",
-    crypto_primitives
+    return_value = "String"
 )]
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    _host: &impl HasHost<State, StateApiType = S>,
-    crypto_primitives: &impl HasCryptoPrimitives,
-) -> ReceiveResult<HashSha2256> {
-    let key_hash = crypto_primitives.hash_sha2_256(NAME.as_bytes()).0;
-
-    Ok(HashSha2256(key_hash))
+    _host: &impl HasHost<State, StateApiType = S>
+) -> ReceiveResult<String> {
+    Ok(String::from("MyName"))
 }

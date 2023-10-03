@@ -18,8 +18,8 @@ use core::fmt::Debug;
 struct State<S: HasStateApi> {
     // The owner of this contract. It can register/override/atomically upgrade contract addresses in this registry.
     owner: Option<Address>,
-    // Mapping from key to contract address. The key/name of a contract is calculated by hashing its human-readable name.
-    registry: StateMap<HashSha2256, ContractAddress, S>,
+    // Mapping from key to contract address. The key/name of a contract is its string name.
+    registry: StateMap<String, ContractAddress, S>,
 }
 
 /// All smart contract errors.
@@ -77,7 +77,7 @@ pub struct LogRegisteredEvent {
     /// The new contract address that got registered.
     pub destination: ContractAddress,
     /// The key/name of a contract.
-    pub name: HashSha2256,
+    pub name: String,
 }
 
 /// The OwnershipTransferredEvent is logged when the contract ownership gets transferred.
@@ -113,9 +113,9 @@ fn init<S: HasStateApi>(
 /// Part of the parameter type for the contract function `importAddresses`.
 #[derive(Serialize, SchemaType)]
 pub struct ImportAddressesParam {
-    /// The new contract address that got registered.
-    pub name: HashSha2256,
     /// The key/name of a contract.
+    pub name: String,
+    /// The new contract address that got registered.
     pub destination: ContractAddress,
 }
 
@@ -156,7 +156,7 @@ fn import_addresses<S: HasStateApi>(
     for entry in import_contracts.entries {
         host.state_mut()
             .registry
-            .insert(entry.name, entry.destination);
+            .insert(entry.name.clone(), entry.destination);
 
         // Log LogRegistered event
         logger.log(&Event::LogRegistered(LogRegisteredEvent {
@@ -209,11 +209,13 @@ fn import_contracts<S: HasStateApi>(
             Amount::zero(),
         )?;
 
-        let name = name
+        let name: String = name
             .ok_or(CustomContractError::InvokeContractError)?
             .get()?;
 
-        host.state_mut().registry.insert(name, contract_address);
+        host.state_mut()
+            .registry
+            .insert(name.clone(), contract_address);
 
         // Log LogRegistered event
         logger.log(&Event::LogRegistered(LogRegisteredEvent {
@@ -289,14 +291,14 @@ fn atomic_update<S: HasStateApi>(
         Amount::zero(),
     )?;
 
-    let name = name
+    let name: String = name
         .ok_or(CustomContractError::InvokeContractError)?
         .get()?;
 
     let old_contract = host
         .state_mut()
         .registry
-        .insert(name, params.contract_address);
+        .insert(name.clone(), params.contract_address);
 
     // Only if another `old_contract` was already registered, execute the `unregister` hook
     if let Some(old_contract) = old_contract {
@@ -318,129 +320,27 @@ fn atomic_update<S: HasStateApi>(
     Ok(())
 }
 
-/// View function that returns the contract_address from a key hash.
-/// Equivalent to the `registry`/`getAddress` entry points.
+/// View function that returns the contract_address from a key name.
 #[receive(
     contract = "registry",
-    name = "requireAndGetAddress",
-    parameter = "HashSha2256",
+    name = "getAddress",
+    parameter = "String",
     return_value = "ContractAddress"
 )]
 fn require_and_get_address<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<ContractAddress> {
-    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+    let key_name: String = ctx.parameter_cursor().get()?;
 
     let contract_address = host
         .state()
         .registry
-        .get(&key_hash)
+        .get(&key_name)
         .map(|s| *s)
         .ok_or(CustomContractError::NameNotRegistered)?;
 
     Ok(contract_address)
-}
-
-/// Equivalent to solidity's getter function (which is automatically created in solidity from the public storage variable `registry`).
-/// View function that returns the contract_address from a key hash.
-/// Equivalent to the `requireAndGetAddress`/`getAddress` entry points.
-#[receive(
-    contract = "registry",
-    name = "registry",
-    parameter = "HashSha2256",
-    return_value = "ContractAddress"
-)]
-fn registry<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<ContractAddress> {
-    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
-
-    let contract_address = host
-        .state()
-        .registry
-        .get(&key_hash)
-        .map(|s| *s)
-        .ok_or(CustomContractError::NameNotRegistered)?;
-
-    Ok(contract_address)
-}
-
-/// View function that returns the contract_address from a key hash.
-/// Equivalent to the `requireAndGetAddress`/`registry` entry points.
-/// ATTENTION: The original solidity function returned address(0x0) instead of throwing an error when the key hash was not registered in this contract.
-/// Returning address(0x0) is typically for solidity but not for Rust/Concordium where address(0x0) has no special meaning, hence this function also throws.
-#[receive(
-    contract = "registry",
-    name = "getAddress",
-    parameter = "HashSha2256",
-    return_value = "ContractAddress"
-)]
-fn get_address<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<ContractAddress> {
-    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
-
-    let contract_address = host
-        .state()
-        .registry
-        .get(&key_hash)
-        .map(|s| *s)
-        .ok_or(CustomContractError::NameNotRegistered)?;
-
-    Ok(contract_address)
-}
-
-/// View function that returns the contract_address from a human-readable string name.
-/// Throws if contract name is not registered.
-#[receive(
-    contract = "registry",
-    name = "getAddressByString",
-    parameter = "String",
-    return_value = "ContractAddress",
-    crypto_primitives
-)]
-fn get_address_by_string<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State<S>, StateApiType = S>,
-    crypto_primitives: &impl HasCryptoPrimitives,
-) -> ReceiveResult<ContractAddress> {
-    let key: String = ctx.parameter_cursor().get()?;
-
-    // Calculate the key hash.
-    let key_hash = crypto_primitives.hash_sha2_256(key.as_bytes()).0;
-
-    let contract_address = host
-        .state()
-        .registry
-        .get(&HashSha2256(key_hash))
-        .map(|s| *s)
-        .ok_or(CustomContractError::NameNotRegistered)?;
-
-    Ok(contract_address)
-}
-
-/// Helper function to convert a human-readable string name to the key hash.
-#[receive(
-    contract = "registry",
-    name = "stringToHashSha2256",
-    parameter = "String",
-    return_value = "HashSha2256",
-    crypto_primitives
-)]
-fn string_to_hash_sha2256<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
-    _host: &impl HasHost<State<S>, StateApiType = S>,
-    crypto_primitives: &impl HasCryptoPrimitives,
-) -> ReceiveResult<HashSha2256> {
-    let key: String = ctx.parameter_cursor().get()?;
-
-    // Calculate the message hash.
-    let key_hash = crypto_primitives.hash_sha2_256(key.as_bytes()).0;
-
-    Ok(HashSha2256(key_hash))
 }
 
 /// View function that returns the owner address.
@@ -456,7 +356,7 @@ fn owner<S: HasStateApi>(
     Ok(host.state().owner)
 }
 
-/// The owner can transfer the ownership to address(0x0). This means, the owner renounces the ownerhip of this contract.
+/// The owner can transfer the ownership to None. This means, the owner renounces the ownerhip of this contract.
 #[receive(
     contract = "registry",
     name = "renounceOwnership",

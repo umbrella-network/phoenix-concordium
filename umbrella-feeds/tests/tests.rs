@@ -955,7 +955,7 @@ fn test_upgrade_without_migration_function() {
                 amount: Amount::zero(),
                 address: initialization_registry.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked(
-                    "registry.getAddressByString".to_string(),
+                    "registry.getAddress".to_string(),
                 ),
                 message: OwnedParameter::from_serial(&String::from("UmbrellaFeeds"))
                     .expect("Should be a valid inut parameter"),

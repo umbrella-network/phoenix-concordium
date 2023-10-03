@@ -1,5 +1,4 @@
 use concordium_smart_contract_testing::*;
-use concordium_std::HashSha2256;
 use registry::{ImportAddressesParam, ImportAddressesParams, OwnershipTransferredEvent};
 use registry::{ImportContractsParam, LogRegisteredEvent};
 
@@ -7,15 +6,6 @@ const ACC_ADDR_OWNER: AccountAddress = AccountAddress([77u8; 32]);
 const OTHER_ACCOUNT: AccountAddress = AccountAddress([1u8; 32]);
 
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
-
-const KEY_HASH_1: HashSha2256 = HashSha2256([
-    120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
-    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
-]);
-const KEY_HASH_2: HashSha2256 = HashSha2256([
-    120, 154, 141, 6, 248, 239, 27, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
-    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
-]);
 
 fn setup_chain_and_contract() -> (Chain, ContractInitSuccess) {
     let mut chain = Chain::new();
@@ -95,11 +85,11 @@ fn test_import_addresses() {
     let input_parameter = ImportAddressesParams {
         entries: vec![
             ImportAddressesParam {
-                name: KEY_HASH_1,
+                name: String::from("Contract1"),
                 destination: umbrella_feeds_contract,
             },
             ImportAddressesParam {
-                name: KEY_HASH_2,
+                name: String::from("Contract2"),
                 destination: staking_bank_contract,
             },
         ],
@@ -137,7 +127,7 @@ fn test_import_addresses() {
     assert_eq!(
         event_struct,
         LogRegisteredEvent {
-            name: KEY_HASH_1,
+            name: String::from("Contract1"),
             destination: umbrella_feeds_contract,
         },
         "LogRegistered event is wrong"
@@ -155,7 +145,7 @@ fn test_import_addresses() {
     assert_eq!(
         event_struct,
         LogRegisteredEvent {
-            name: KEY_HASH_2,
+            name: String::from("Contract2"),
             destination: staking_bank_contract,
         },
         "LogRegistered event is wrong"
@@ -172,7 +162,7 @@ fn test_import_addresses() {
                 amount: Amount::zero(),
                 address: initialization_registry.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
-                message: OwnedParameter::from_serial(&KEY_HASH_1)
+                message: OwnedParameter::from_serial(&String::from("Contract1"))
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -236,27 +226,6 @@ fn test_import_contracts() {
         )
         .expect("Should be able to importContracts");
 
-    // Getting the key hash.
-
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "registry.stringToHashSha2256".to_string(),
-                ),
-                message: OwnedParameter::from_serial(&String::from("MyName"))
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .expect("Should be able to query contract address");
-
-    let hash: HashSha2256 = from_bytes(&invoke.return_value).expect("Should return a valid result");
-
     // Checking logged event.
     let events: Vec<(ContractAddress, &[ContractEvent])> = update.events().collect();
     let event = &events[1].1[0];
@@ -271,7 +240,7 @@ fn test_import_contracts() {
     assert_eq!(
         event_struct,
         LogRegisteredEvent {
-            name: hash,
+            name: String::from("MyName"),
             destination: initialization_dummy_contract.contract_address,
         },
         "LogRegistered event is wrong"
@@ -288,33 +257,6 @@ fn test_import_contracts() {
                 amount: Amount::zero(),
                 address: initialization_registry.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
-                message: OwnedParameter::from_serial(&hash)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .expect("Should be able to query contract address");
-
-    let contract_address: ContractAddress =
-        from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    assert_eq!(
-        contract_address,
-        initialization_dummy_contract.contract_address
-    );
-
-    // Checking that contract address was registered correctly in registry.
-
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "registry.getAddressByString".to_string(),
-                ),
                 message: OwnedParameter::from_serial(&String::from("MyName"))
                     .expect("Should be a valid inut parameter"),
             },
@@ -328,163 +270,6 @@ fn test_import_contracts() {
         contract_address,
         initialization_dummy_contract.contract_address
     );
-}
-
-/// Test getter functions.
-#[test]
-fn test_getter_functions() {
-    let (mut chain, initialization_registry) = setup_chain_and_contract();
-
-    let umbrella_feeds_contract = ContractAddress {
-        index: 8,
-        subindex: 0,
-    };
-
-    let input_parameter = ImportAddressesParams {
-        entries: vec![ImportAddressesParam {
-            name: KEY_HASH_1,
-            destination: umbrella_feeds_contract,
-        }],
-    };
-
-    // Invoking 'importAddresses'.
-
-    let _update = chain
-        .contract_update(
-            Signer::with_one_key(), // Used for specifying the number of signatures.
-            ACC_ADDR_OWNER,         // Invoker account.
-            Address::Account(ACC_ADDR_OWNER), // Sender (can also be a contract).
-            Energy::from(10000),    // Maximum energy allowed for the update.
-            UpdateContractPayload {
-                address: initialization_registry.contract_address, // The contract to update.
-                receive_name: OwnedReceiveName::new_unchecked("registry.importAddresses".into()), // The receive function to call.
-                message: OwnedParameter::from_serial(&input_parameter)
-                    .expect("`input_parameter` should be a valid inut parameter"), // The parameter sent to the contract.
-                amount: Amount::from_ccd(0), // Sending the contract 0 CCD.
-            },
-        )
-        .expect("Should be able to importAddresses");
-
-    // Checking `getAddress` function.
-
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
-                message: OwnedParameter::from_serial(&KEY_HASH_1)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .expect("Should be able to query contract address");
-
-    let contract_address: ContractAddress =
-        from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    assert_eq!(contract_address, umbrella_feeds_contract);
-
-    // Checking `getAddress` function throws for invalid key hash.
-
-    let _invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
-                message: OwnedParameter::from_serial(&KEY_HASH_2)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .is_err();
-
-    // Checking `registry` function.
-
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked("registry.registry".to_string()),
-                message: OwnedParameter::from_serial(&KEY_HASH_1)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .expect("Should be able to query contract address");
-
-    let contract_address: ContractAddress =
-        from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    assert_eq!(contract_address, umbrella_feeds_contract);
-
-    // Checking `registry` function throws for invalid key hash.
-
-    let _invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked("registry.registry".to_string()),
-                message: OwnedParameter::from_serial(&KEY_HASH_2)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .is_err();
-
-    // Checking `requireAndGetAddress` function.
-
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "registry.requireAndGetAddress".to_string(),
-                ),
-                message: OwnedParameter::from_serial(&KEY_HASH_1)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .expect("Should be able to query contract address");
-
-    let contract_address: ContractAddress =
-        from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    assert_eq!(contract_address, umbrella_feeds_contract);
-
-    // Checking `requireAndGetAddress` function throws for invalid key hash.
-
-    let _invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "registry.requireAndGetAddress".to_string(),
-                ),
-                message: OwnedParameter::from_serial(&KEY_HASH_2)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .is_err();
 }
 
 /// Test owner functionalities
