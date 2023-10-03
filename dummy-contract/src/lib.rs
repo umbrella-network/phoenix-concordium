@@ -21,14 +21,10 @@ fn init<S: HasStateApi>(
     Ok(State {})
 }
 
-#[receive(
-    contract = "dummy_contract",
-    name = "getName",
-    return_value = "String"
-)]
+#[receive(contract = "dummy_contract", name = "getName", return_value = "String")]
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
-    _host: &impl HasHost<State, StateApiType = S>
+    _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<String> {
     Ok(String::from("MyName"))
 }

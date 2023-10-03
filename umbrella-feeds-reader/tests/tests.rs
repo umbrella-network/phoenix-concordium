@@ -7,7 +7,6 @@ use concordium_std::{
     AccountSignatures, CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp,
 };
 use registry::{AtomicUpdateParam, ImportContractsParam};
-use sha256::digest;
 use umbrella_feeds::{InitParamsUmbrellaFeeds, Message, PriceData, UpdateParams};
 use umbrella_feeds_reader::{InitParamsUmbrellaFeedsReader, LatestRoundDataReturnValue};
 
@@ -15,16 +14,17 @@ const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(100000000000);
 
 const SIGNATURE_ETH_CCD_FEEDS_1: SignatureEd25519 = SignatureEd25519([
-    247, 122, 19, 218, 9, 77, 56, 34, 50, 44, 178, 93, 116, 82, 78, 117, 197, 113, 132, 100, 48,
-    144, 40, 108, 171, 20, 163, 38, 7, 18, 21, 213, 26, 4, 237, 91, 194, 195, 42, 254, 11, 118, 26,
-    252, 64, 30, 119, 194, 70, 118, 36, 36, 155, 112, 70, 203, 117, 89, 122, 234, 80, 227, 103, 11,
+    178, 135, 17, 215, 211, 254, 210, 156, 248, 73, 206, 80, 22, 82, 47, 163, 191, 177, 206, 16,
+    54, 34, 127, 139, 173, 89, 35, 189, 110, 200, 144, 13, 104, 141, 24, 43, 28, 121, 195, 24, 9,
+    144, 202, 243, 209, 212, 95, 121, 214, 234, 249, 133, 234, 18, 58, 9, 26, 146, 150, 224, 129,
+    90, 55, 2,
 ]);
 
 const SIGNATURE_ETH_CCD_FEEDS_2: SignatureEd25519 = SignatureEd25519([
-    69, 94, 133, 241, 119, 150, 94, 22, 187, 40, 182, 90, 236, 131, 124, 222, 57, 144, 203, 9, 26,
-    64, 60, 39, 130, 244, 200, 243, 143, 216, 227, 222, 67, 67, 121, 49, 15, 115, 209, 177, 128,
-    153, 145, 29, 85, 116, 91, 71, 248, 215, 200, 16, 66, 17, 226, 193, 234, 8, 17, 95, 143, 240,
-    136, 10,
+    80, 166, 224, 182, 42, 7, 152, 100, 155, 158, 163, 78, 233, 243, 143, 246, 170, 20, 73, 238,
+    248, 176, 252, 78, 108, 237, 170, 172, 206, 113, 58, 106, 154, 34, 157, 194, 196, 189, 187,
+    108, 44, 152, 20, 7, 76, 151, 221, 47, 90, 132, 53, 19, 232, 160, 163, 253, 241, 117, 132, 228,
+    107, 81, 80, 1,
 ]);
 
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
@@ -280,7 +280,7 @@ fn test_update_price_feed() {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization_umbrella_feeds.contract_address,
             chain_id: 49228,
-            price_feed: vec![(digest(String::from("ETH-CCD")).parse().unwrap(), price_data)],
+            price_feed: vec![(String::from("ETH-CCD"), price_data)],
         },
     };
 
@@ -343,7 +343,7 @@ fn test_update_price_feed() {
 
     // Checking price data was updated correctly in contract
 
-    let key_hash: HashSha2256 = digest(String::from("ETH-CCD")).parse().unwrap();
+    let key: String = String::from("ETH-CCD");
 
     let invoke = chain
         .contract_invoke(
@@ -356,7 +356,7 @@ fn test_update_price_feed() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.getPriceData".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&key_hash)
+                message: OwnedParameter::from_serial(&key)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -381,7 +381,7 @@ fn test_update_price_feed() {
     let input_parameter_3 = InitParamsUmbrellaFeedsReader {
         registry: initialization_registry.contract_address,
         umbrella_feeds: initialization_umbrella_feeds.contract_address,
-        description: "ETH-CCD".to_string(),
+        key: "ETH-CCD".to_string(),
         decimals: 18,
     };
 
@@ -438,7 +438,7 @@ fn test_update_price_feed() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds_reader.getPriceData".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&key_hash)
+                message: OwnedParameter::from_serial(&key)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -449,29 +449,7 @@ fn test_update_price_feed() {
 
     assert_eq!(stored_price_data, price_data);
 
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_umbrella_feeds_reader.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "umbrella_feeds_reader.getPriceDataRaw".to_string(),
-                ),
-                message: OwnedParameter::from_serial(&key_hash)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .expect("Should be able to query getPriceDataRaw");
-
-    let stored_price_data: PriceData =
-        from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    assert_eq!(stored_price_data, price_data);
-
-    // Checking `getPriceDataRaw` and `getPriceData` via umbrella_feeds_reader after an upgrade to `umbrella_feeds` contract
+    // Checking `getPriceData` via umbrella_feeds_reader after an upgrade to `umbrella_feeds` contract
 
     // We upgrade the `umbrellaFeeds` contract first
 
@@ -528,29 +506,7 @@ fn test_update_price_feed() {
 
     // We finished upgrading the `umbrellaFeeds` contract
 
-    // Checking `getPriceDataRaw` and `getPriceData` via umbrella_feeds_reader
-
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_umbrella_feeds_reader.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "umbrella_feeds_reader.getPriceDataRaw".to_string(),
-                ),
-                message: OwnedParameter::from_serial(&key_hash)
-                    .expect("Should be a valid inut parameter"),
-            },
-        )
-        .expect("Should be able to query getPriceDataRaw");
-
-    let stored_price_data: PriceData =
-        from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    assert_eq!(stored_price_data, price_data);
+    // Checking `getPriceData` via umbrella_feeds_reader
 
     let invoke = chain
         .contract_invoke(
@@ -563,7 +519,7 @@ fn test_update_price_feed() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds_reader.getPriceData".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&key_hash)
+                message: OwnedParameter::from_serial(&key)
                     .expect("Should be a valid inut parameter"),
             },
         )

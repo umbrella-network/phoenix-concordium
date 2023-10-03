@@ -30,10 +30,8 @@ struct State {
     registry: ContractAddress,
     /// Umbrella_feeds contract where price data is stored.
     umbrella_feeds: ContractAddress,
-    /// The key for the feed name represented by this contract. E.g. for the "ETH-USD" feed, the key will be the hash("ETH-USD").
-    key: HashSha2256,
-    /// Description of this feed name.
-    description: String,
+    /// The key for the feed name represented by this contract. E.g. for the "ETH-USDC" feed, the key will be the String "ETH-USDC".
+    key: String,
     /// Decimals for prices stored in the umbrella_feeds contract.
     decimals: u8,
 }
@@ -65,19 +63,17 @@ pub struct InitParamsUmbrellaFeedsReader {
     pub registry: ContractAddress,
     pub umbrella_feeds: ContractAddress,
     pub decimals: u8,
-    pub description: String,
+    pub key: String,
 }
 
 /// Init function that creates a new smart contract. The `checkSetUp` entry point should be called after creating a new smart contract instance for a sanity check.
 #[init(
     contract = "umbrella_feeds_reader",
-    parameter = "InitParamsUmbrellaFeedsReader",
-    crypto_primitives
+    parameter = "InitParamsUmbrellaFeedsReader"
 )]
 fn init<S: HasStateApi>(
     ctx: &impl HasInitContext,
     _state_builder: &mut StateBuilder<S>,
-    crypto_primitives: &impl HasCryptoPrimitives,
 ) -> InitResult<State> {
     let param: InitParamsUmbrellaFeedsReader = ctx.parameter_cursor().get()?;
 
@@ -90,14 +86,11 @@ fn init<S: HasStateApi>(
         CustomContractError::EmptyAddress.into()
     );
 
-    let key_hash = crypto_primitives.hash_sha2_256(param.description.as_bytes());
-
     Ok(State {
         registry: param.registry,
         decimals: param.decimals,
         umbrella_feeds: param.umbrella_feeds,
-        key: key_hash,
-        description: param.description,
+        key: param.key,
     })
 }
 
@@ -128,11 +121,9 @@ fn check_set_up<S: HasStateApi>(
         CustomContractError::DecimalsDoesNotMatch.into()
     );
 
-    let hash: HashSha2256 = host.state().key;
-
-    let price_data = host.invoke_contract_read_only::<HashSha2256>(
+    let price_data = host.invoke_contract_read_only::<String>(
         &host.state().umbrella_feeds,
-        &hash,
+        &host.state().key,
         EntrypointName::new_unchecked("getPriceData"),
         Amount::zero(),
     )?;
@@ -191,11 +182,9 @@ fn latest_round_data<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<LatestRoundDataReturnValue> {
-    let hash: HashSha2256 = host.state().key;
-
-    let price_data = host.invoke_contract_read_only::<HashSha2256>(
+    let price_data = host.invoke_contract_read_only::<String>(
         &host.state().umbrella_feeds,
-        &hash,
+        &host.state().key,
         EntrypointName::new_unchecked("getPriceData"),
         Amount::zero(),
     )?;
@@ -225,40 +214,10 @@ fn get_price_data<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<PriceData> {
-    let hash: HashSha2256 = host.state().key;
-
-    let price_data = host.invoke_contract_read_only::<HashSha2256>(
+    let price_data = host.invoke_contract_read_only::<String>(
         &host.state().umbrella_feeds,
-        &hash,
+        &host.state().key,
         EntrypointName::new_unchecked("getPriceData"),
-        Amount::zero(),
-    )?;
-
-    let price_data: PriceData = price_data
-        .ok_or(CustomContractError::InvokeContractError)?
-        .get()?;
-
-    Ok(price_data)
-}
-
-/// This is the raw entry point for reading the feed. The feed is read from the umbrella_feeds contract using the hardcoded `key` in this contract.
-/// In case the feed does not exist, this entry point does NOT throw an error but instead returns a default price value (similar to solidity contracts).
-/// There is no fallback function since the native upgrade mechanism on Concordium allows to upgrade of the `UmbrellaFeeds` contract without changing its contract address.
-#[receive(
-    contract = "umbrella_feeds_reader",
-    name = "getPriceDataRaw",
-    return_value = "PriceData"
-)]
-fn get_price_data_raw<S: HasStateApi>(
-    _ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<PriceData> {
-    let hash: HashSha2256 = host.state().key;
-
-    let price_data = host.invoke_contract_read_only::<HashSha2256>(
-        &host.state().umbrella_feeds,
-        &hash,
-        EntrypointName::new_unchecked("prices"),
         Amount::zero(),
     )?;
 

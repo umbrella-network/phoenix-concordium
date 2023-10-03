@@ -40,6 +40,7 @@ impl PriceData {
         }
     }
 }
+
 #[derive(Serial, DeserialWithState)]
 #[concordium(state_parameter = "S")]
 struct State<S> {
@@ -312,7 +313,7 @@ fn contract_view_message_hash<S: HasStateApi>(
     // or sign a message (in that case the prepend is `account` address and 8 zero
     // bytes). Hence, the 8 zero bytes ensure that the user does not accidentally
     // sign a transaction. The account nonce is of type u64 (8 bytes).
-    let mut msg_prepend = vec![0u8; 32 + 8];
+    let mut msg_prepend = [0u8; 32 + 8];
 
     let vec_length = param.signers_and_signatures.len();
 
