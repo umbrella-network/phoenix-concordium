@@ -53,9 +53,9 @@ struct State<S> {
     required_signatures: u16,
     /// Decimals for prices stored in this contract.
     decimals: u8,
-    /// Map of all prices stored in this contract. It maps from the key to PriceData. The key for the map is the hash of the feed name.
-    /// E.g. for the "ETH-USD" feed, the key will be the hash("ETH-USD").
-    prices: StateMap<HashSha2256, PriceData, S>,
+    /// Map of all prices stored in this contract. It maps from the key to PriceData. The key for the map is the string of the feed name.
+    /// E.g. for the "ETH-USDC" feed, the key will be "ETH-USDC".
+    prices: StateMap<String, PriceData, S>,
 }
 
 /// All smart contract errors.
@@ -256,7 +256,7 @@ pub struct Message {
     /// A chain id that this message was intended for.
     pub chain_id: u16,
     /// The price feed.
-    pub price_feed: Vec<(HashSha2256, PriceData)>,
+    pub price_feed: Vec<(String, PriceData)>,
 }
 
 /// The parameter type for the contract function `update`.
@@ -440,7 +440,7 @@ fn update<S: HasStateApi>(
     verify_signatures(ctx, host, crypto_primitives)?;
 
     for element in message.price_feed {
-        let price_key: HashSha2256 = element.0;
+        let price_key: String = element.0;
         let new_price_data: PriceData = element.1;
 
         let mut stored_price_data = host
@@ -462,102 +462,39 @@ fn update<S: HasStateApi>(
     Ok(())
 }
 
-/// View function that returns the key hash/name of this contract.
-#[receive(
-    contract = "umbrella_feeds",
-    name = "getName",
-    return_value = "HashSha2256"
-)]
+/// View function that returns the key/name of this contract.
+#[receive(contract = "umbrella_feeds", name = "getName", return_value = "String")]
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<HashSha2256> {
-    // Returns `hash_sha2_256("UmbrellaFeeds")`
-    Ok(HashSha2256([
-        185, 40, 5, 213, 65, 172, 57, 201, 251, 100, 11, 109, 182, 167, 24, 13, 49, 242, 9, 4, 4,
-        214, 200, 104, 0, 53, 188, 230, 38, 18, 193, 57,
-    ]))
+) -> ReceiveResult<String> {
+    Ok(String::from("UmbrellaFeeds"))
 }
 
 /// View function that returns many price data. It throws if price feed does not exist.
 #[receive(
     contract = "umbrella_feeds",
     name = "getManyPriceData",
-    parameter = "Vec<HashSha2256>",
+    parameter = "Vec<String>",
     return_value = "Vec<PriceData>"
 )]
 fn get_many_price_data<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<Vec<PriceData>> {
-    let key_hashes: Vec<HashSha2256> = ctx.parameter_cursor().get()?;
+    let keys: Vec<String> = ctx.parameter_cursor().get()?;
 
-    let mut price_data = Vec::with_capacity(key_hashes.len());
+    let mut price_data = Vec::with_capacity(keys.len());
 
-    for key_hash in key_hashes {
+    for key in keys {
         price_data.push(
             *host
                 .state()
                 .prices
-                .get(&key_hash)
+                .get(&key)
                 .ok_or(CustomContractError::FeedNotExist)?,
         );
     }
-
-    Ok(price_data)
-}
-
-/// View function that returns many price data. This function does NOT throw if the price feed does not exists.
-/// The original solidity function returned a default PriceData instead of throwing an error when the price feed did not exsts in this contract.
-/// This behavior (also not typical for Rust) is mimicked.
-#[receive(
-    contract = "umbrella_feeds",
-    name = "getManyPriceDataRaw",
-    parameter = "Vec<HashSha2256>",
-    return_value = "Vec<PriceData>"
-)]
-fn get_many_price_data_raw<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<Vec<PriceData>> {
-    let key_hashes: Vec<HashSha2256> = ctx.parameter_cursor().get()?;
-
-    let mut price_data = Vec::with_capacity(key_hashes.len());
-
-    for key_hash in key_hashes {
-        price_data.push(
-            host.state()
-                .prices
-                .get(&key_hash)
-                .map(|s| *s)
-                .unwrap_or_else(PriceData::default),
-        );
-    }
-
-    Ok(price_data)
-}
-
-/// View function that returns the price data of one price feed. This function does NOT throw if the price feed does not exists.
-/// The original solidity function returned a default PriceData instead of throwing an error when the price feed did not exsts in this contract.
-/// This behavior (also not typical for Rust) is mimicked.
-#[receive(
-    contract = "umbrella_feeds",
-    name = "prices",
-    parameter = "HashSha2256",
-    return_value = "PriceData"
-)]
-fn prices<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<PriceData> {
-    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
-
-    let price_data = host
-        .state()
-        .prices
-        .get(&key_hash)
-        .map(|s| *s)
-        .unwrap_or_else(PriceData::default);
 
     Ok(price_data)
 }
@@ -566,19 +503,19 @@ fn prices<S: HasStateApi>(
 #[receive(
     contract = "umbrella_feeds",
     name = "getPriceData",
-    parameter = "HashSha2256",
+    parameter = "String",
     return_value = "PriceData"
 )]
 fn get_price_data<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<PriceData> {
-    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+    let key: String = ctx.parameter_cursor().get()?;
 
     let price_data = *host
         .state()
         .prices
-        .get(&key_hash)
+        .get(&key)
         .ok_or(CustomContractError::FeedNotExist)?;
 
     Ok(price_data)
@@ -588,19 +525,19 @@ fn get_price_data<S: HasStateApi>(
 #[receive(
     contract = "umbrella_feeds",
     name = "getPrice",
-    parameter = "HashSha2256",
+    parameter = "String",
     return_value = "u128"
 )]
 fn get_price<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<u128> {
-    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+    let key: String = ctx.parameter_cursor().get()?;
 
     let price_data = *host
         .state()
         .prices
-        .get(&key_hash)
+        .get(&key)
         .ok_or(CustomContractError::FeedNotExist)?;
 
     Ok(price_data.price)
@@ -610,19 +547,19 @@ fn get_price<S: HasStateApi>(
 #[receive(
     contract = "umbrella_feeds",
     name = "getPriceTimestamp",
-    parameter = "HashSha2256",
+    parameter = "String",
     return_value = "Timestamp"
 )]
 fn get_price_timestamp<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<Timestamp> {
-    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+    let key: String = ctx.parameter_cursor().get()?;
 
     let price_data = *host
         .state()
         .prices
-        .get(&key_hash)
+        .get(&key)
         .ok_or(CustomContractError::FeedNotExist)?;
 
     Ok(price_data.timestamp)
@@ -635,19 +572,19 @@ pub struct SchemTypeTripleWrapper(u128, Timestamp, u64);
 #[receive(
     contract = "umbrella_feeds",
     name = "getPriceTimestampHeartbeat",
-    parameter = "HashSha2256",
+    parameter = "String",
     return_value = "SchemTypeTripleWrapper"
 )]
 fn get_price_timestamp_heartbeat<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     host: &impl HasHost<State<S>, StateApiType = S>,
 ) -> ReceiveResult<SchemTypeTripleWrapper> {
-    let key_hash: HashSha2256 = ctx.parameter_cursor().get()?;
+    let key: String = ctx.parameter_cursor().get()?;
 
     let price_data = *host
         .state()
         .prices
-        .get(&key_hash)
+        .get(&key)
         .ok_or(CustomContractError::FeedNotExist)?;
 
     Ok(SchemTypeTripleWrapper(
@@ -655,34 +592,6 @@ fn get_price_timestamp_heartbeat<S: HasStateApi>(
         price_data.timestamp,
         price_data.heartbeat,
     ))
-}
-
-/// View function that returns the price data by name.
-#[receive(
-    contract = "umbrella_feeds",
-    name = "getPriceDataByName",
-    parameter = "String",
-    return_value = "PriceData",
-    crypto_primitives
-)]
-fn get_price_data_by_name<S: HasStateApi>(
-    ctx: &impl HasReceiveContext,
-    host: &impl HasHost<State<S>, StateApiType = S>,
-    crypto_primitives: &impl HasCryptoPrimitives,
-) -> ReceiveResult<PriceData> {
-    let key: String = ctx.parameter_cursor().get()?;
-
-    // Calculate the key hash.
-    let key_hash = crypto_primitives.hash_sha2_256(key.as_bytes()).0;
-
-    let price_data = host
-        .state()
-        .prices
-        .get(&HashSha2256(key_hash))
-        .map(|s| *s)
-        .unwrap_or_else(PriceData::default);
-
-    Ok(price_data)
 }
 
 /// View function that returns the chain id.

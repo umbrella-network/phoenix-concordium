@@ -7,61 +7,51 @@ use concordium_std::{
     AccountSignatures, CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp,
 };
 use registry::{AtomicUpdateParam, ImportContractsParam};
-use sha256::digest;
 use umbrella_feeds::{InitParamsUmbrellaFeeds, Message, PriceData, UpdateParams};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
 
-const KEY_HASH: HashSha2256 = HashSha2256([
-    120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
-    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
-]);
-
-const KEY_HASH_2: HashSha2256 = HashSha2256([
-    120, 14, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
-    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
-]);
-
 const SIGNATURE_1: SignatureEd25519 = SignatureEd25519([
-    146, 192, 138, 73, 29, 77, 21, 81, 107, 212, 43, 14, 39, 5, 101, 113, 227, 126, 102, 72, 118,
-    190, 52, 40, 232, 168, 9, 129, 61, 197, 193, 173, 37, 112, 55, 88, 153, 214, 86, 66, 193, 128,
-    240, 165, 139, 64, 18, 217, 31, 155, 235, 89, 82, 197, 254, 23, 162, 27, 132, 179, 245, 52, 58,
-    3,
+    202, 18, 112, 41, 118, 23, 126, 23, 39, 154, 82, 140, 202, 72, 244, 112, 79, 41, 213, 109, 1,
+    6, 231, 160, 164, 18, 156, 15, 103, 58, 55, 48, 54, 74, 188, 72, 220, 150, 152, 226, 152, 134,
+    148, 120, 210, 207, 160, 86, 43, 245, 225, 168, 221, 178, 204, 160, 171, 18, 227, 65, 113, 208,
+    0, 10,
 ]);
 
 const SIGNATURE_2: SignatureEd25519 = SignatureEd25519([
-    210, 147, 206, 186, 190, 79, 103, 150, 226, 155, 7, 134, 148, 254, 142, 45, 185, 154, 12, 169,
-    237, 127, 80, 144, 33, 221, 117, 32, 0, 154, 58, 225, 132, 53, 105, 193, 160, 166, 76, 149,
-    249, 135, 169, 164, 143, 166, 107, 96, 54, 51, 43, 44, 0, 6, 53, 76, 194, 34, 128, 243, 21,
-    156, 91, 14,
+    231, 56, 47, 104, 199, 98, 238, 154, 60, 206, 231, 68, 123, 253, 248, 73, 3, 110, 22, 71, 216,
+    13, 148, 171, 190, 155, 64, 234, 149, 5, 102, 21, 108, 170, 73, 2, 209, 87, 150, 141, 192, 240,
+    238, 113, 252, 64, 158, 16, 53, 240, 106, 197, 177, 196, 207, 55, 11, 228, 13, 79, 253, 121,
+    207, 11,
 ]);
 
 const SIGNATURE_TWO_PRICE_FEEDS_1: SignatureEd25519 = SignatureEd25519([
-    203, 254, 168, 196, 227, 90, 218, 84, 95, 78, 38, 175, 98, 83, 24, 59, 173, 134, 121, 108, 19,
-    114, 161, 161, 180, 184, 46, 89, 22, 43, 93, 62, 171, 86, 179, 209, 11, 179, 188, 70, 228, 47,
-    249, 165, 85, 15, 110, 193, 18, 204, 204, 124, 130, 147, 109, 13, 55, 119, 72, 80, 149, 66,
-    178, 6,
+    127, 244, 115, 84, 34, 88, 195, 207, 121, 52, 117, 113, 167, 181, 20, 4, 7, 61, 151, 134, 191,
+    205, 141, 28, 237, 83, 46, 15, 212, 183, 0, 91, 197, 12, 112, 195, 24, 151, 191, 139, 147, 34,
+    30, 35, 53, 247, 165, 15, 100, 186, 111, 144, 138, 184, 128, 224, 180, 169, 185, 46, 200, 237,
+    220, 14,
 ]);
 
 const SIGNATURE_TWO_PRICE_FEEDS_2: SignatureEd25519 = SignatureEd25519([
-    134, 188, 255, 31, 71, 246, 166, 167, 62, 172, 245, 183, 69, 55, 23, 180, 154, 169, 33, 47,
-    233, 163, 152, 61, 202, 33, 152, 123, 180, 207, 44, 120, 156, 185, 141, 60, 121, 162, 48, 14,
-    79, 69, 220, 3, 136, 198, 17, 182, 33, 53, 145, 117, 65, 82, 1, 10, 70, 187, 4, 152, 105, 238,
-    123, 1,
+    173, 210, 22, 211, 117, 57, 237, 21, 176, 109, 13, 155, 203, 235, 132, 132, 166, 79, 111, 186,
+    243, 246, 30, 198, 77, 169, 93, 198, 183, 175, 91, 19, 22, 198, 68, 8, 203, 93, 203, 204, 93,
+    17, 14, 168, 14, 49, 185, 37, 185, 46, 182, 146, 38, 107, 72, 244, 40, 146, 26, 17, 179, 76,
+    146, 5,
 ]);
 
 const SIGNATURE_ETH_CCD_FEEDS_1: SignatureEd25519 = SignatureEd25519([
-    247, 122, 19, 218, 9, 77, 56, 34, 50, 44, 178, 93, 116, 82, 78, 117, 197, 113, 132, 100, 48,
-    144, 40, 108, 171, 20, 163, 38, 7, 18, 21, 213, 26, 4, 237, 91, 194, 195, 42, 254, 11, 118, 26,
-    252, 64, 30, 119, 194, 70, 118, 36, 36, 155, 112, 70, 203, 117, 89, 122, 234, 80, 227, 103, 11,
+    178, 135, 17, 215, 211, 254, 210, 156, 248, 73, 206, 80, 22, 82, 47, 163, 191, 177, 206, 16,
+    54, 34, 127, 139, 173, 89, 35, 189, 110, 200, 144, 13, 104, 141, 24, 43, 28, 121, 195, 24, 9,
+    144, 202, 243, 209, 212, 95, 121, 214, 234, 249, 133, 234, 18, 58, 9, 26, 146, 150, 224, 129,
+    90, 55, 2,
 ]);
 
 const SIGNATURE_ETH_CCD_FEEDS_2: SignatureEd25519 = SignatureEd25519([
-    69, 94, 133, 241, 119, 150, 94, 22, 187, 40, 182, 90, 236, 131, 124, 222, 57, 144, 203, 9, 26,
-    64, 60, 39, 130, 244, 200, 243, 143, 216, 227, 222, 67, 67, 121, 49, 15, 115, 209, 177, 128,
-    153, 145, 29, 85, 116, 91, 71, 248, 215, 200, 16, 66, 17, 226, 193, 234, 8, 17, 95, 143, 240,
-    136, 10,
+    80, 166, 224, 182, 42, 7, 152, 100, 155, 158, 163, 78, 233, 243, 143, 246, 170, 20, 73, 238,
+    248, 176, 252, 78, 108, 237, 170, 172, 206, 113, 58, 106, 154, 34, 157, 194, 196, 189, 187,
+    108, 44, 152, 20, 7, 76, 151, 221, 47, 90, 132, 53, 19, 232, 160, 163, 253, 241, 117, 132, 228,
+    107, 81, 80, 1,
 ]);
 
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
@@ -311,6 +301,10 @@ fn test_update_two_price_feeds() {
         _initialization_staking_bank,
     ) = setup_chain_and_contract();
 
+    let key_1: String = String::from("Contract1");
+
+    let key_2: String = String::from("Contract2");
+
     let price_data_1 = PriceData {
         data: 7,
         heartbeat: 12,
@@ -378,7 +372,7 @@ fn test_update_two_price_feeds() {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization_umbrella_feeds.contract_address,
             chain_id: 49228,
-            price_feed: vec![(KEY_HASH, price_data_1), (KEY_HASH_2, price_data_2)],
+            price_feed: vec![(key_1.clone(), price_data_1), (key_2.clone(), price_data_2)],
         },
     };
 
@@ -412,7 +406,7 @@ fn test_update_two_price_feeds() {
         );
     }
 
-    let signature:SignatureEd25519 = "86BCFF1F47F6A6A73EACF5B7453717B49AA9212FE9A3983DCA21987BB4CF2C789CB98D3C79A2300E4F45DC0388C611B6213591754152010A46BB049869EE7B01".parse().unwrap();
+    let signature:SignatureEd25519 = "CA12702976177E17279A528CCA48F4704F29D56D0106E7A0A4129C0F673A3730364ABC48DC9698E298869478D2CFA0562BF5E1A8DDB2CCA0AB12E34171D0000A".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
@@ -452,7 +446,7 @@ fn test_update_two_price_feeds() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.getManyPriceData".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&vec![KEY_HASH, KEY_HASH_2])
+                message: OwnedParameter::from_serial(&vec![key_1.clone(), key_2.clone()])
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -472,9 +466,9 @@ fn test_update_two_price_feeds() {
                 amount: Amount::zero(),
                 address: initialization_umbrella_feeds.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked(
-                    "umbrella_feeds.getManyPriceDataRaw".to_string(),
+                    "umbrella_feeds.getManyPriceData".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&vec![KEY_HASH, KEY_HASH_2])
+                message: OwnedParameter::from_serial(&vec![key_1, key_2])
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -495,6 +489,8 @@ fn test_update_price_feed() {
         _initialization_registry,
         _initialization_staking_bank,
     ) = setup_chain_and_contract();
+
+    let key_1: String = String::from("Contract1");
 
     let price_data = PriceData {
         data: 7,
@@ -550,7 +546,7 @@ fn test_update_price_feed() {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization_umbrella_feeds.contract_address,
             chain_id: 49228,
-            price_feed: vec![(KEY_HASH, price_data)],
+            price_feed: vec![(key_1.clone(), price_data)],
         },
     };
 
@@ -584,7 +580,7 @@ fn test_update_price_feed() {
         );
     }
 
-    let signature:SignatureEd25519 = "D293CEBABE4F6796E29B078694FE8E2DB99A0CA9ED7F509021DD7520009A3AE1843569C1A0A64C95F987A9A48FA66B6036332B2C0006354CC22280F3159C5B0E".parse().unwrap();
+    let signature:SignatureEd25519 = "E7382F68C762EE9A3CCEE7447BFDF849036E1647D80D94ABBE9B40EA950566156CAA4902D157968DC0F0EE71FC409E1035F06AC5B1C4CF370BE40D4FFD79CF0B".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
@@ -621,8 +617,10 @@ fn test_update_price_feed() {
             UpdateContractPayload {
                 amount: Amount::zero(),
                 address: initialization_umbrella_feeds.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked("umbrella_feeds.prices".to_string()),
-                message: OwnedParameter::from_serial(&KEY_HASH)
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.getPriceData".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&key_1)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -644,7 +642,7 @@ fn test_update_price_feed() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.getPriceData".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&KEY_HASH)
+                message: OwnedParameter::from_serial(&key_1)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -666,7 +664,7 @@ fn test_update_price_feed() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.getPrice".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&KEY_HASH)
+                message: OwnedParameter::from_serial(&key_1)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -688,7 +686,7 @@ fn test_update_price_feed() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.getPriceTimestamp".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&KEY_HASH)
+                message: OwnedParameter::from_serial(&key_1)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -710,7 +708,7 @@ fn test_update_price_feed() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "umbrella_feeds.getPriceTimestampHeartbeat".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&KEY_HASH)
+                message: OwnedParameter::from_serial(&key_1)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -795,7 +793,7 @@ fn test_update_price_feed_and_check_price_via_feed_name() {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization_umbrella_feeds.contract_address,
             chain_id: 49228,
-            price_feed: vec![(digest(String::from("ETH-CCD")).parse().unwrap(), price_data)],
+            price_feed: vec![(String::from("ETH-CCD"), price_data)],
         },
     };
 
@@ -829,7 +827,7 @@ fn test_update_price_feed_and_check_price_via_feed_name() {
         );
     }
 
-    let signature:SignatureEd25519 = "455E85F177965E16BB28B65AEC837CDE3990CB091A403C2782F4C8F38FD8E3DE434379310F73D1B18099911D55745B47F8D7C8104211E2C1EA08115F8FF0880A".parse().unwrap();
+    let signature:SignatureEd25519 = "B28711D7D3FED29CF849CE5016522FA3BFB1CE1036227F8BAD5923BD6EC8900D688D182B1C79C3180990CAF3D1D45F79D6EAF985EA123A091A9296E0815A3702".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
@@ -867,9 +865,9 @@ fn test_update_price_feed_and_check_price_via_feed_name() {
                 amount: Amount::zero(),
                 address: initialization_umbrella_feeds.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked(
-                    "umbrella_feeds.getPriceDataByName".to_string(),
+                    "umbrella_feeds.getPriceData".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&"ETH-CCD")
+                message: OwnedParameter::from_serial(&String::from("ETH-CCD"))
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -906,13 +904,9 @@ fn test_get_name() {
         )
         .expect("Should be able to query contract name");
 
-    let value: HashSha2256 =
-        from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: String = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(
-        value,
-        digest(String::from("UmbrellaFeeds")).parse().unwrap()
-    );
+    assert_eq!(value, String::from("UmbrellaFeeds"));
 }
 
 #[test]
@@ -954,9 +948,7 @@ fn test_upgrade_without_migration_function() {
             UpdateContractPayload {
                 amount: Amount::zero(),
                 address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "registry.getAddress".to_string(),
-                ),
+                receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
                 message: OwnedParameter::from_serial(&String::from("UmbrellaFeeds"))
                     .expect("Should be a valid inut parameter"),
             },
@@ -1033,9 +1025,7 @@ fn test_upgrade_without_migration_function() {
             UpdateContractPayload {
                 amount: Amount::zero(),
                 address: initialization_registry.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "registry.getAddressByString".to_string(),
-                ),
+                receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
                 message: OwnedParameter::from_serial(&String::from("UmbrellaFeeds"))
                     .expect("Should be a valid inut parameter"),
             },
