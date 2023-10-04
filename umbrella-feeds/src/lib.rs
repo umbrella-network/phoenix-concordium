@@ -333,8 +333,10 @@ fn verify_signatures<S: HasStateApi>(
 
     let mut validators: Vec<PublicKeyEd25519> = Vec::with_capacity(required_signatures as usize);
 
-    // To save gas we check only required number of signatures.
+    // To save gas we check only the required number of signatures.
     // The case, where you can have part of signatures invalid but still enough valid in total is not supported.
+    // We want to record all validators who submit (valid) signatures in a trustless/transparent way
+    // in the smart contract (to e.g. reward off-chain all validators for good behavior) that is why the smart contract allows submitting more signatures than the `required_signatures` here.
     for i in 0..required_signatures {
         let signer = param.signers_and_signatures[i as usize].0;
         let signature = param.signers_and_signatures[i as usize].1;
