@@ -265,7 +265,7 @@ pub struct Message {
 #[derive(Serialize, SchemaType)]
 pub struct UpdateParams {
     /// Signers and signatures. The signatures are in a two-level map to support multi-sig accounts.
-    pub signers_and_signatures: Vec<(AccountAddress, AccountSignatures)>,
+    pub signers_and_signatures: Vec<(PublicKeyEd25519, SignatureEd25519)>,
     /// Message that was signed.
     pub message: Message,
 }
@@ -274,7 +274,7 @@ pub struct UpdateParams {
 #[concordium(transparent)]
 pub struct UpdateParamsPartial {
     /// Signers and signatures. The signatures are in a two-level map to support multi-sig accounts.
-    pub signers_and_signatures: Vec<(AccountAddress, AccountSignatures)>,
+    pub signers_and_signatures: Vec<(PublicKeyEd25519, SignatureEd25519)>,
 }
 
 /// Helper function to calculate the `message_hash`.
@@ -282,7 +282,7 @@ pub struct UpdateParamsPartial {
     contract = "umbrella_feeds",
     name = "viewMessageHash",
     parameter = "UpdateParams",
-    return_value = "Vec<[u8;32]>",
+    return_value = "[u8;32]",
     crypto_primitives,
     mutable
 )]
@@ -290,13 +290,13 @@ fn contract_view_message_hash<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &mut impl HasHost<State<S>, StateApiType = S>,
     crypto_primitives: &impl HasCryptoPrimitives,
-) -> Result<Vec<[u8; 32]>, CustomContractError> {
+) -> Result<[u8; 32], CustomContractError> {
     // Parse the parameter.
     let mut cursor = ctx.parameter_cursor();
     // The input parameter is `UpdateParams` but we only read the initial part of it
     // with `UpdateParamsPartial`. I.e. we read the `signatures` and the
     // `signers`, but not the `message` here.
-    let param: UpdateParamsPartial = cursor.get()?;
+    let _param: UpdateParamsPartial = cursor.get()?;
 
     // The input parameter is `UpdateParams` but we have only read the initial part
     // of it with `UpdateParamsPartial` so far. We read in the `message` now.
@@ -306,33 +306,9 @@ fn contract_view_message_hash<S: HasStateApi>(
 
     cursor.read_exact(&mut message_bytes)?;
 
-    // The message signed in the Concordium browser wallet is prepended with the
-    // `account` address and 8 zero bytes. Accounts in the Concordium browser wallet
-    // can either sign a regular transaction (in that case the prepend is
-    // `account` address and the nonce of the account which is by design >= 1)
-    // or sign a message (in that case the prepend is `account` address and 8 zero
-    // bytes). Hence, the 8 zero bytes ensure that the user does not accidentally
-    // sign a transaction. The account nonce is of type u64 (8 bytes).
-    let mut msg_prepend = [0u8; 32 + 8];
+    let message_hash = crypto_primitives.hash_sha2_256(&message_bytes).0;
 
-    let vec_length = param.signers_and_signatures.len();
-
-    let mut message_hashes: Vec<[u8; 32]> = Vec::with_capacity(vec_length);
-
-    for i in 0..vec_length {
-        let signer = param.signers_and_signatures[i].0;
-
-        // Prepend the `account` address of the signer.
-        msg_prepend[0..32].copy_from_slice(signer.as_ref());
-        // Calculate the message hash.
-        message_hashes.push(
-            crypto_primitives
-                .hash_sha2_256(&[&msg_prepend[0..40], &message_bytes].concat())
-                .0,
-        );
-    }
-
-    Ok(message_hashes)
+    Ok(message_hash)
 }
 
 /// Helper function to verify the signature.
@@ -356,23 +332,24 @@ fn verify_signatures<S: HasStateApi>(
         CustomContractError::NotEnoughSignatures
     );
 
-    let mut prev_signer: Option<AccountAddress> = None;
+    let mut prev_signer: Option<PublicKeyEd25519> = None;
 
-    let message_hashes = contract_view_message_hash(ctx, host, crypto_primitives)?;
+    let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
 
     let required_signatures = host.state().required_signatures;
 
-    let mut validators: Vec<AccountAddress> = Vec::with_capacity(required_signatures as usize);
+    let mut validators: Vec<PublicKeyEd25519> = Vec::with_capacity(required_signatures as usize);
 
     // To save gas we check only required number of signatures.
     // The case, where you can have part of signatures invalid but still enough valid in total is not supported.
     for i in 0..required_signatures {
         let signer = param.signers_and_signatures[i as usize].0;
-        let signature = &param.signers_and_signatures[i as usize].1;
+        let signature = param.signers_and_signatures[i as usize].1;
 
         //Check signature.
         let valid_signature =
-            host.check_account_signature(signer, signature, &message_hashes[i as usize])?;
+            crypto_primitives.verify_ed25519_signature(signer, signature, &message_hash);
+
         ensure!(valid_signature, CustomContractError::WrongSignature);
 
         ensure!(
@@ -385,7 +362,7 @@ fn verify_signatures<S: HasStateApi>(
         prev_signer = Some(signer);
     }
 
-    let are_valid_signers = host.invoke_contract_read_only::<Vec<AccountAddress>>(
+    let are_valid_signers = host.invoke_contract_read_only::<Vec<PublicKeyEd25519>>(
         &host.state().staking_bank,
         &validators,
         EntrypointName::new_unchecked("verifyValidators"),

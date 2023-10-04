@@ -1,9 +1,26 @@
 use concordium_smart_contract_testing::*;
-use concordium_std::HashSha2256;
-use sha256::digest;
+use concordium_std::{HashSha2256, PublicKeyEd25519};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([77u8; 32]);
-const OTHER_ACCOUNT: AccountAddress = AccountAddress([1u8; 32]);
+
+// ATTENTION: Use a different key in production. This key and its private key is exposed and used for testing here.
+// Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
+const VALIDATOR_0: PublicKeyEd25519 = PublicKeyEd25519([
+    120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
+    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
+]);
+
+// ATTENTION: Use a different key in production. This key and its private key is exposed and used for testing here.
+// Private key: 12827BE279AA7DB7400E9322824CF3C7D5D599005836FDA506351B9B340838A9
+const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([
+    217, 108, 75, 18, 24, 234, 126, 194, 15, 70, 4, 214, 194, 240, 47, 163, 243, 107, 81, 132, 67,
+    243, 162, 209, 78, 136, 94, 127, 247, 21, 222, 221,
+]);
+
+const VALIDATOR_DOES_NOT_EXIST: PublicKeyEd25519 = PublicKeyEd25519([
+    000, 108, 75, 18, 24, 234, 126, 194, 15, 70, 4, 214, 194, 240, 47, 163, 243, 107, 81, 132, 67,
+    243, 162, 209, 78, 136, 94, 127, 247, 21, 222, 221,
+]);
 
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
 
@@ -17,7 +34,6 @@ fn setup_chain_and_contract() -> (Chain, ContractInitSuccess) {
 
     // Creating accounts.
     chain.create_account(Account::new(ACC_ADDR_OWNER, ACC_INITIAL_BALANCE));
-    chain.create_account(Account::new(OTHER_ACCOUNT, ACC_INITIAL_BALANCE));
 
     // Deploying 'staking bank' contract
 
@@ -64,11 +80,8 @@ fn test_verify_validators() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "staking_bank.verifyValidators".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&vec![
-                    AccountAddress([4u8; 32]),
-                    AccountAddress([99u8; 32]),
-                ])
-                .expect("Should be a valid inut parameter"),
+                message: OwnedParameter::from_serial(&vec![VALIDATOR_DOES_NOT_EXIST, VALIDATOR_0])
+                    .expect("Should be a valid inut parameter"),
             },
         )
         .expect("Should be able to query if address is validator");
@@ -88,11 +101,8 @@ fn test_verify_validators() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "staking_bank.verifyValidators".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&vec![
-                    AccountAddress([4u8; 32]),
-                    AccountAddress([7u8; 32]),
-                ])
-                .expect("Should be a valid inut parameter"),
+                message: OwnedParameter::from_serial(&vec![VALIDATOR_0, VALIDATOR_1])
+                    .expect("Should be a valid inut parameter"),
             },
         )
         .expect("Should be able to query if address is validator");
@@ -117,7 +127,7 @@ fn test_balances() {
                 amount: Amount::zero(),
                 address: initialization_staking_bank.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("staking_bank.balances".to_string()),
-                message: OwnedParameter::from_serial(&AccountAddress([2u8; 32]))
+                message: OwnedParameter::from_serial(&VALIDATOR_0)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -136,7 +146,7 @@ fn test_balances() {
                 amount: Amount::zero(),
                 address: initialization_staking_bank.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("staking_bank.balances".to_string()),
-                message: OwnedParameter::from_serial(&AccountAddress([99u8; 32]))
+                message: OwnedParameter::from_serial(&VALIDATOR_DOES_NOT_EXIST)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -168,10 +178,7 @@ fn test_balances() {
 
     let one = 1000000000000000000u64;
 
-    assert_eq!(
-        value,
-        vec![one, one, one, one, one, one, one, one, one, one, one, one, one, one, one]
-    );
+    assert_eq!(value, vec![one, one]);
 
     // Checking balanceOf.
 
@@ -184,7 +191,7 @@ fn test_balances() {
                 amount: Amount::zero(),
                 address: initialization_staking_bank.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("staking_bank.balanceOf".to_string()),
-                message: OwnedParameter::from_serial(&AccountAddress([3u8; 32]))
+                message: OwnedParameter::from_serial(&VALIDATOR_0)
                     .expect("Should be a valid inut parameter"),
             },
         )
@@ -212,21 +219,18 @@ fn test_validators() {
                 receive_name: OwnedReceiveName::new_unchecked(
                     "staking_bank.validators".to_string(),
                 ),
-                message: OwnedParameter::from_serial(&AccountAddress([2u8; 32]))
+                message: OwnedParameter::from_serial(&VALIDATOR_0)
                     .expect("Should be a valid inut parameter"),
             },
         )
         .expect("Should be able to query validator");
 
-    let state: (AccountAddress, String) =
+    let state: (PublicKeyEd25519, String) =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
     assert_eq!(
         state,
-        (
-            AccountAddress([2u8; 32]),
-            String::from("https://umbrella.artemahr.tech")
-        )
+        (VALIDATOR_0, String::from("https://validator.umb.network"))
     );
 
     // Checking addresses.
@@ -240,16 +244,16 @@ fn test_validators() {
                 amount: Amount::zero(),
                 address: initialization_staking_bank.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked("staking_bank.addresses".to_string()),
-                message: OwnedParameter::from_serial(&3u8)
+                message: OwnedParameter::from_serial(&0u8)
                     .expect("Should be a valid inut parameter"),
             },
         )
         .expect("Should be able to query validator");
 
-    let state: AccountAddress =
+    let value: PublicKeyEd25519 =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(state, AccountAddress([3u8; 32]));
+    assert_eq!(value, VALIDATOR_0);
 }
 
 #[test]
@@ -272,10 +276,9 @@ fn test_get_name() {
         )
         .expect("Should be able to query contract state");
 
-    let value: HashSha2256 =
-        from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: String = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, digest(String::from("StakingBank")).parse().unwrap());
+    assert_eq!(value, String::from("StakingBank"));
 }
 
 #[test]
@@ -303,7 +306,7 @@ fn test_init() {
 
     let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 15);
+    assert_eq!(value, 2);
 
     // Checking `getNumberOfValidators`.
 
@@ -326,7 +329,7 @@ fn test_init() {
 
     let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 15);
+    assert_eq!(value, 2);
 
     // Checking `TOTAL_SUPPLY`.
 
@@ -349,7 +352,7 @@ fn test_init() {
 
     let value: u64 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 15000000000000000000);
+    assert_eq!(value, 2000000000000000000);
 
     // Checking `totalSupply`.
 
@@ -372,7 +375,7 @@ fn test_init() {
 
     let value: u64 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 15000000000000000000);
+    assert_eq!(value, 2000000000000000000);
 
     // Checking `ONE`.
 
@@ -414,27 +417,8 @@ fn test_init() {
         )
         .expect("Should be able to query value");
 
-    let value: [AccountAddress; 15] =
+    let value: [PublicKeyEd25519; 2] =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(
-        value,
-        [
-            AccountAddress([0u8; 32]),
-            AccountAddress([1u8; 32]),
-            AccountAddress([2u8; 32]),
-            AccountAddress([3u8; 32]),
-            AccountAddress([4u8; 32]),
-            AccountAddress([5u8; 32]),
-            AccountAddress([6u8; 32]),
-            AccountAddress([7u8; 32]),
-            AccountAddress([8u8; 32]),
-            AccountAddress([9u8; 32]),
-            AccountAddress([10u8; 32]),
-            AccountAddress([11u8; 32]),
-            AccountAddress([12u8; 32]),
-            AccountAddress([13u8; 32]),
-            AccountAddress([14u8; 32])
-        ]
-    );
+    assert_eq!(value, [VALIDATOR_0, VALIDATOR_1]);
 }

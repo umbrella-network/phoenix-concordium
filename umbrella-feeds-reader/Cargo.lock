@@ -1519,7 +1519,6 @@ version = "1.0.0"
 dependencies = [
  "concordium-smart-contract-testing",
  "concordium-std",
- "ed25519-dalek",
  "registry",
  "staking-bank",
  "umbrella-feeds",

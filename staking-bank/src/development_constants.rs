@@ -5,8 +5,19 @@ use concordium_std::*;
 
 // Development constants and functions
 
-pub(crate) const VALIDATOR_0: AccountAddress = AccountAddress([0u8; 32]);
-pub(crate) const VALIDATOR_1: AccountAddress = AccountAddress([1u8; 32]);
+// ATTENTION: Use a different key in production. This key and its private key is exposed and used for testing here.
+// Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
+pub(crate) const VALIDATOR_0: PublicKeyEd25519 = PublicKeyEd25519([
+    120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
+    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
+]);
+
+// ATTENTION: Use a different key in production. This key and its private key is exposed and used for testing here.
+// Private key: 12827BE279AA7DB7400E9322824CF3C7D5D599005836FDA506351B9B340838A9
+pub(crate) const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([
+    217, 108, 75, 18, 24, 234, 126, 194, 15, 70, 4, 214, 194, 240, 47, 163, 243, 107, 81, 132, 67,
+    243, 162, 209, 78, 136, 94, 127, 247, 21, 222, 221,
+]);
 
 /// The number of validators.
 pub(crate) const NUMBER_OF_VALIDATORS: u8 = 2;
@@ -14,12 +25,12 @@ pub(crate) const NUMBER_OF_VALIDATORS: u8 = 2;
 pub(crate) const TOTAL_SUPPLY: u64 = 2 * 1000000000000000000u64;
 
 /// Internal function that returns a boolean if the given address is a validator.
-pub(crate) fn is_validator(validator: AccountAddress) -> bool {
+pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {
     addresses().contains(&validator)
 }
 
 /// Internal function that returns all validators.
-pub(crate) fn addresses() -> [AccountAddress; 2] {
+pub(crate) fn addresses() -> [PublicKeyEd25519; 2] {
     [VALIDATOR_0, VALIDATOR_1]
 }
 
@@ -27,14 +38,14 @@ pub(crate) fn addresses() -> [AccountAddress; 2] {
 #[receive(
     contract = "staking_bank",
     name = "validators",
-    parameter = "AccountAddress",
-    return_value = "(AccountAddress,String)"
+    parameter = "PublicKeyEd25519",
+    return_value = "(PublicKeyEd25519,String)"
 )]
 pub(crate) fn validators<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<(AccountAddress, String)> {
-    let id: AccountAddress = ctx.parameter_cursor().get()?;
+) -> ReceiveResult<(PublicKeyEd25519, String)> {
+    let id: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
     match id {
         VALIDATOR_0 => Ok((id, "https://validator.umb.network".to_string())),
@@ -47,11 +58,11 @@ pub(crate) fn validators<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "getAddresses",
-    return_value = "[AccountAddress;22]"
+    return_value = "[PublicKeyEd25519;22]"
 )]
 pub(crate) fn get_addresses<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<[AccountAddress; 2]> {
+) -> ReceiveResult<[PublicKeyEd25519; 2]> {
     Ok(addresses())
 }

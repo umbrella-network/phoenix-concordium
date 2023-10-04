@@ -1,11 +1,8 @@
 use std::collections::BTreeMap;
 
-use concordium_smart_contract_testing::AccountAccessStructure;
 use concordium_smart_contract_testing::*;
 use concordium_std::HashSha2256;
-use concordium_std::{
-    AccountSignatures, CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp,
-};
+use concordium_std::{CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp};
 use registry::{AtomicUpdateParam, ImportContractsParam};
 use umbrella_feeds::{InitParamsUmbrellaFeeds, Message, PriceData, UpdateParams};
 
@@ -13,45 +10,44 @@ const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
 
 const SIGNATURE_1: SignatureEd25519 = SignatureEd25519([
-    202, 18, 112, 41, 118, 23, 126, 23, 39, 154, 82, 140, 202, 72, 244, 112, 79, 41, 213, 109, 1,
-    6, 231, 160, 164, 18, 156, 15, 103, 58, 55, 48, 54, 74, 188, 72, 220, 150, 152, 226, 152, 134,
-    148, 120, 210, 207, 160, 86, 43, 245, 225, 168, 221, 178, 204, 160, 171, 18, 227, 65, 113, 208,
-    0, 10,
+    62, 249, 216, 64, 254, 146, 219, 193, 206, 85, 5, 3, 8, 159, 59, 13, 220, 137, 7, 24, 223, 3,
+    175, 250, 197, 11, 60, 69, 23, 216, 168, 204, 14, 149, 79, 4, 53, 160, 185, 1, 64, 89, 235,
+    247, 68, 154, 180, 154, 184, 134, 106, 107, 63, 255, 162, 165, 144, 52, 5, 54, 117, 246, 85,
+    11,
 ]);
 
 const SIGNATURE_2: SignatureEd25519 = SignatureEd25519([
-    231, 56, 47, 104, 199, 98, 238, 154, 60, 206, 231, 68, 123, 253, 248, 73, 3, 110, 22, 71, 216,
-    13, 148, 171, 190, 155, 64, 234, 149, 5, 102, 21, 108, 170, 73, 2, 209, 87, 150, 141, 192, 240,
-    238, 113, 252, 64, 158, 16, 53, 240, 106, 197, 177, 196, 207, 55, 11, 228, 13, 79, 253, 121,
-    207, 11,
+    22, 201, 213, 137, 246, 0, 4, 72, 162, 15, 41, 249, 203, 196, 21, 119, 113, 193, 117, 154, 177,
+    236, 61, 1, 172, 130, 50, 63, 136, 145, 195, 172, 33, 2, 28, 19, 165, 86, 39, 169, 88, 60, 173,
+    150, 71, 220, 65, 195, 2, 131, 46, 131, 98, 188, 42, 123, 191, 240, 139, 211, 203, 99, 26, 6,
 ]);
 
 const SIGNATURE_TWO_PRICE_FEEDS_1: SignatureEd25519 = SignatureEd25519([
-    127, 244, 115, 84, 34, 88, 195, 207, 121, 52, 117, 113, 167, 181, 20, 4, 7, 61, 151, 134, 191,
-    205, 141, 28, 237, 83, 46, 15, 212, 183, 0, 91, 197, 12, 112, 195, 24, 151, 191, 139, 147, 34,
-    30, 35, 53, 247, 165, 15, 100, 186, 111, 144, 138, 184, 128, 224, 180, 169, 185, 46, 200, 237,
-    220, 14,
+    232, 217, 219, 103, 59, 31, 70, 31, 76, 128, 163, 240, 9, 235, 60, 68, 146, 123, 96, 90, 43,
+    166, 204, 43, 220, 254, 92, 142, 132, 163, 161, 68, 72, 167, 50, 120, 205, 218, 202, 102, 16,
+    11, 170, 25, 229, 141, 117, 233, 179, 90, 159, 237, 126, 56, 163, 47, 19, 127, 81, 124, 124,
+    242, 101, 12,
 ]);
 
 const SIGNATURE_TWO_PRICE_FEEDS_2: SignatureEd25519 = SignatureEd25519([
-    173, 210, 22, 211, 117, 57, 237, 21, 176, 109, 13, 155, 203, 235, 132, 132, 166, 79, 111, 186,
-    243, 246, 30, 198, 77, 169, 93, 198, 183, 175, 91, 19, 22, 198, 68, 8, 203, 93, 203, 204, 93,
-    17, 14, 168, 14, 49, 185, 37, 185, 46, 182, 146, 38, 107, 72, 244, 40, 146, 26, 17, 179, 76,
-    146, 5,
+    238, 25, 132, 147, 139, 172, 54, 151, 142, 195, 59, 126, 46, 204, 21, 247, 30, 186, 85, 237,
+    16, 41, 116, 22, 204, 35, 38, 222, 203, 79, 167, 86, 74, 228, 9, 11, 144, 178, 69, 227, 63,
+    107, 102, 121, 240, 237, 24, 4, 199, 88, 115, 162, 130, 206, 183, 141, 79, 242, 193, 144, 42,
+    205, 221, 10,
 ]);
 
 const SIGNATURE_ETH_CCD_FEEDS_1: SignatureEd25519 = SignatureEd25519([
-    178, 135, 17, 215, 211, 254, 210, 156, 248, 73, 206, 80, 22, 82, 47, 163, 191, 177, 206, 16,
-    54, 34, 127, 139, 173, 89, 35, 189, 110, 200, 144, 13, 104, 141, 24, 43, 28, 121, 195, 24, 9,
-    144, 202, 243, 209, 212, 95, 121, 214, 234, 249, 133, 234, 18, 58, 9, 26, 146, 150, 224, 129,
-    90, 55, 2,
+    159, 193, 0, 133, 68, 49, 251, 167, 191, 33, 12, 88, 229, 186, 240, 12, 71, 240, 169, 192, 87,
+    123, 98, 142, 245, 117, 233, 211, 92, 208, 209, 30, 67, 64, 117, 225, 161, 142, 219, 32, 193,
+    93, 31, 89, 247, 76, 54, 39, 152, 186, 192, 151, 2, 142, 105, 52, 93, 27, 132, 114, 221, 252,
+    248, 13,
 ]);
 
 const SIGNATURE_ETH_CCD_FEEDS_2: SignatureEd25519 = SignatureEd25519([
-    80, 166, 224, 182, 42, 7, 152, 100, 155, 158, 163, 78, 233, 243, 143, 246, 170, 20, 73, 238,
-    248, 176, 252, 78, 108, 237, 170, 172, 206, 113, 58, 106, 154, 34, 157, 194, 196, 189, 187,
-    108, 44, 152, 20, 7, 76, 151, 221, 47, 90, 132, 53, 19, 232, 160, 163, 253, 241, 117, 132, 228,
-    107, 81, 80, 1,
+    120, 223, 9, 151, 2, 222, 215, 181, 221, 168, 14, 103, 178, 27, 50, 33, 207, 172, 47, 89, 34,
+    120, 237, 111, 54, 140, 85, 192, 199, 164, 178, 219, 121, 92, 133, 20, 164, 189, 194, 59, 57,
+    199, 248, 175, 128, 168, 93, 120, 159, 203, 57, 92, 33, 111, 4, 129, 133, 22, 38, 36, 245, 6,
+    238, 14,
 ]);
 
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
@@ -66,9 +62,6 @@ const PUBLIC_KEY_SIGNER_2: [u8; 32] = [
     243, 162, 209, 78, 136, 94, 127, 247, 21, 222, 221,
 ];
 
-const SIGNER_1: AccountAddress = AccountAddress([1u8; 32]);
-const SIGNER_2: AccountAddress = AccountAddress([2u8; 32]);
-
 fn setup_chain_and_contract() -> (
     Chain,
     ContractInitSuccess,
@@ -76,71 +69,6 @@ fn setup_chain_and_contract() -> (
     ContractInitSuccess,
 ) {
     let mut chain = Chain::new();
-
-    let balance = AccountBalance {
-        total: ACC_INITIAL_BALANCE,
-        staked: Amount::zero(),
-        locked: Amount::zero(),
-    };
-
-    // Creating signer_1's keys
-
-    let mut inner_key_map_signer_1: BTreeMap<KeyIndex, VerifyKey> = BTreeMap::new();
-
-    inner_key_map_signer_1.insert(
-        KeyIndex(0u8),
-        VerifyKey::Ed25519VerifyKey(
-            ed25519_dalek::PublicKey::from_bytes(&PUBLIC_KEY_SIGNER_1)
-                .expect("Should be able to create public key"),
-        ),
-    );
-
-    let credential_public_keys_signer_1 = CredentialPublicKeys {
-        keys: inner_key_map_signer_1,
-        threshold: SignatureThreshold::ONE,
-    };
-
-    let mut key_map_signer_1: BTreeMap<CredentialIndex, CredentialPublicKeys> = BTreeMap::new();
-    key_map_signer_1.insert(
-        CredentialIndex { index: 0u8 },
-        credential_public_keys_signer_1,
-    );
-
-    let keys_signer_1 = AccountAccessStructure {
-        keys: key_map_signer_1,
-        threshold: AccountThreshold::ONE,
-    };
-
-    chain.create_account(Account::new_with_keys(SIGNER_1, balance, keys_signer_1));
-
-    // Creating signer_2's keys
-
-    let mut inner_key_map_signer_2: BTreeMap<KeyIndex, VerifyKey> = BTreeMap::new();
-
-    inner_key_map_signer_2.insert(
-        KeyIndex(0u8),
-        VerifyKey::Ed25519VerifyKey(
-            ed25519_dalek::PublicKey::from_bytes(&PUBLIC_KEY_SIGNER_2)
-                .expect("Should be able to create public key"),
-        ),
-    );
-
-    let credential_public_keys_signer_2 = CredentialPublicKeys {
-        keys: inner_key_map_signer_2,
-        threshold: SignatureThreshold::ONE,
-    };
-
-    let mut key_map_signer_2: BTreeMap<CredentialIndex, CredentialPublicKeys> = BTreeMap::new();
-    key_map_signer_2.insert(
-        CredentialIndex { index: 0u8 },
-        credential_public_keys_signer_2,
-    );
-
-    let keys_signer_2 = AccountAccessStructure {
-        keys: key_map_signer_2,
-        threshold: AccountThreshold::ONE,
-    };
-    chain.create_account(Account::new_with_keys(SIGNER_2, balance, keys_signer_2));
 
     // Creating contract owner's keys
 
@@ -356,16 +284,12 @@ fn test_update_two_price_feeds() {
     let update_param = UpdateParams {
         signers_and_signatures: vec![
             (
-                SIGNER_1,
-                AccountSignatures {
-                    sigs: signature_map,
-                },
+                PublicKeyEd25519(PUBLIC_KEY_SIGNER_1),
+                SIGNATURE_TWO_PRICE_FEEDS_1,
             ),
             (
-                SIGNER_2,
-                AccountSignatures {
-                    sigs: signature_map_signer_2,
-                },
+                PublicKeyEd25519(PUBLIC_KEY_SIGNER_2),
+                SIGNATURE_TWO_PRICE_FEEDS_2,
             ),
         ],
         message: Message {
@@ -395,18 +319,15 @@ fn test_update_two_price_feeds() {
         )
         .expect("Should be able to query messageHash");
 
-    let message_hashes: Vec<[u8; 32]> =
+    let message_hash: [u8; 32] =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    for (i, message_hash) in message_hashes.iter().enumerate() {
-        println!(
-            "Signer {} sign this message hash: {}",
-            i,
-            HashSha2256(*message_hash)
-        );
-    }
+    println!(
+        "Signer sign this message hash: {}",
+        HashSha2256(message_hash)
+    );
 
-    let signature:SignatureEd25519 = "CA12702976177E17279A528CCA48F4704F29D56D0106E7A0A4129C0F673A3730364ABC48DC9698E298869478D2CFA0562BF5E1A8DDB2CCA0AB12E34171D0000A".parse().unwrap();
+    let signature:SignatureEd25519 = "EE1984938BAC36978EC33B7E2ECC15F71EBA55ED10297416CC2326DECB4FA7564AE4090B90B245E33F6B6679F0ED1804C75873A282CEB78D4FF2C1902ACDDD0A".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
@@ -529,18 +450,8 @@ fn test_update_price_feed() {
 
     let update_param = UpdateParams {
         signers_and_signatures: vec![
-            (
-                SIGNER_1,
-                AccountSignatures {
-                    sigs: signature_map,
-                },
-            ),
-            (
-                SIGNER_2,
-                AccountSignatures {
-                    sigs: signature_map_signer_2,
-                },
-            ),
+            (PublicKeyEd25519(PUBLIC_KEY_SIGNER_1), SIGNATURE_1),
+            (PublicKeyEd25519(PUBLIC_KEY_SIGNER_2), SIGNATURE_2),
         ],
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
@@ -569,18 +480,15 @@ fn test_update_price_feed() {
         )
         .expect("Should be able to query messageHash");
 
-    let message_hashes: Vec<[u8; 32]> =
+    let message_hash: [u8; 32] =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    for (i, message_hash) in message_hashes.iter().enumerate() {
-        println!(
-            "Signer {} sign this message hash: {}",
-            i,
-            HashSha2256(*message_hash)
-        );
-    }
+    println!(
+        "Signer sign this message hash: {}",
+        HashSha2256(message_hash)
+    );
 
-    let signature:SignatureEd25519 = "E7382F68C762EE9A3CCEE7447BFDF849036E1647D80D94ABBE9B40EA950566156CAA4902D157968DC0F0EE71FC409E1035F06AC5B1C4CF370BE40D4FFD79CF0B".parse().unwrap();
+    let signature:SignatureEd25519 = "16C9D589F6000448A20F29F9CBC4157771C1759AB1EC3D01AC82323F8891C3AC21021C13A55627A9583CAD9647DC41C302832E8362BC2A7BBFF08BD3CB631A06".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
@@ -777,16 +685,12 @@ fn test_update_price_feed_and_check_price_via_feed_name() {
     let update_param = UpdateParams {
         signers_and_signatures: vec![
             (
-                SIGNER_1,
-                AccountSignatures {
-                    sigs: signature_map,
-                },
+                PublicKeyEd25519(PUBLIC_KEY_SIGNER_1),
+                SIGNATURE_ETH_CCD_FEEDS_1,
             ),
             (
-                SIGNER_2,
-                AccountSignatures {
-                    sigs: signature_map_signer_2,
-                },
+                PublicKeyEd25519(PUBLIC_KEY_SIGNER_2),
+                SIGNATURE_ETH_CCD_FEEDS_2,
             ),
         ],
         message: Message {
@@ -816,18 +720,15 @@ fn test_update_price_feed_and_check_price_via_feed_name() {
         )
         .expect("Should be able to query messageHash");
 
-    let message_hashes: Vec<[u8; 32]> =
+    let message_hash: [u8; 32] =
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    for (i, message_hash) in message_hashes.iter().enumerate() {
-        println!(
-            "Signer {} sign this message hash: {}",
-            i,
-            HashSha2256(*message_hash)
-        );
-    }
+    println!(
+        "Signer sign this message hash: {}",
+        HashSha2256(message_hash)
+    );
 
-    let signature:SignatureEd25519 = "B28711D7D3FED29CF849CE5016522FA3BFB1CE1036227F8BAD5923BD6EC8900D688D182B1C79C3180990CAF3D1D45F79D6EAF985EA123A091A9296E0815A3702".parse().unwrap();
+    let signature:SignatureEd25519 = "9FC100854431FBA7BF210C58E5BAF00C47F0A9C0577B628EF575E9D35CD0D11E434075E1A18EDB20C15D1F59F74C362798BAC097028E69345D1B8472DDFCF80D".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =

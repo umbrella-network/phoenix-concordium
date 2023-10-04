@@ -24,7 +24,6 @@ path = "../registry/"
 
 [dev-dependencies]
 concordium-smart-contract-testing = "3.0"
-sha256 = "1.4.0"
 
 [lib]
 crate-type=["cdylib", "rlib"]

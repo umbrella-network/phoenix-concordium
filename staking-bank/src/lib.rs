@@ -109,14 +109,14 @@ fn one<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "balances",
-    parameter = "AccountAddress",
+    parameter = "PublicKeyEd25519",
     return_value = "u64"
 )]
 fn balances<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
-    let account: AccountAddress = ctx.parameter_cursor().get()?;
+    let account: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
     if is_validator(account) {
         Ok(ONE)
@@ -130,14 +130,14 @@ fn balances<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "verifyValidators",
-    parameter = "Vec<AccountAddress>",
+    parameter = "Vec<PublicKeyEd25519>",
     return_value = "bool"
 )]
 fn verify_validators<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<bool> {
-    let accounts: Vec<AccountAddress> = ctx.parameter_cursor().get()?;
+    let accounts: Vec<PublicKeyEd25519> = ctx.parameter_cursor().get()?;
 
     for validator in accounts {
         if !is_validator(validator) {
@@ -187,12 +187,12 @@ fn get_balances<S: HasStateApi>(
     contract = "staking_bank",
     name = "addresses",
     parameter = "u8",
-    return_value = "AccountAddress"
+    return_value = "PublicKeyEd25519"
 )]
 fn addresses_external<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<AccountAddress> {
+) -> ReceiveResult<PublicKeyEd25519> {
     let index: u8 = ctx.parameter_cursor().get()?;
     Ok(addresses()[usize::from(index)])
 }
@@ -202,14 +202,14 @@ fn addresses_external<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "balanceOf",
-    parameter = "AccountAddress",
+    parameter = "PublicKeyEd25519",
     return_value = "u64"
 )]
 fn balance_of<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
-    let account: AccountAddress = ctx.parameter_cursor().get()?;
+    let account: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
     if is_validator(account) {
         Ok(ONE)
@@ -229,20 +229,12 @@ fn total_supply_2<S: HasStateApi>(
 }
 
 /// View function that returns the key hash of this contract.
-#[receive(
-    contract = "staking_bank",
-    name = "getName",
-    return_value = "HashSha2256"
-)]
+#[receive(contract = "staking_bank", name = "getName", return_value = "String")]
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<HashSha2256> {
-    // Returns `hash_sha2_256("StakingBank")`
-    Ok(HashSha2256([
-        163, 229, 195, 6, 10, 196, 35, 235, 83, 252, 32, 202, 196, 142, 167, 81, 1, 209, 161, 227,
-        36, 186, 35, 86, 132, 126, 249, 217, 174, 252, 7, 236,
-    ]))
+) -> ReceiveResult<String> {
+    Ok(String::from("StakingBank"))
 }
 
 /// The parameter type for the contract function `upgrade`.

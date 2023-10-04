@@ -5,21 +5,21 @@ use concordium_std::*;
 
 // Production constants and functions
 
-pub(crate) const VALIDATOR_0: AccountAddress = AccountAddress([0u8; 32]);
-pub(crate) const VALIDATOR_1: AccountAddress = AccountAddress([1u8; 32]);
-pub(crate) const VALIDATOR_2: AccountAddress = AccountAddress([2u8; 32]);
-pub(crate) const VALIDATOR_3: AccountAddress = AccountAddress([3u8; 32]);
-pub(crate) const VALIDATOR_4: AccountAddress = AccountAddress([4u8; 32]);
-pub(crate) const VALIDATOR_5: AccountAddress = AccountAddress([5u8; 32]);
-pub(crate) const VALIDATOR_6: AccountAddress = AccountAddress([6u8; 32]);
-pub(crate) const VALIDATOR_7: AccountAddress = AccountAddress([7u8; 32]);
-pub(crate) const VALIDATOR_8: AccountAddress = AccountAddress([8u8; 32]);
-pub(crate) const VALIDATOR_9: AccountAddress = AccountAddress([9u8; 32]);
-pub(crate) const VALIDATOR_10: AccountAddress = AccountAddress([10u8; 32]);
-pub(crate) const VALIDATOR_11: AccountAddress = AccountAddress([11u8; 32]);
-pub(crate) const VALIDATOR_12: AccountAddress = AccountAddress([12u8; 32]);
-pub(crate) const VALIDATOR_13: AccountAddress = AccountAddress([13u8; 32]);
-pub(crate) const VALIDATOR_14: AccountAddress = AccountAddress([14u8; 32]);
+pub(crate) const VALIDATOR_0: PublicKeyEd25519 = PublicKeyEd25519([0u8; 32]);
+pub(crate) const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([1u8; 32]);
+pub(crate) const VALIDATOR_2: PublicKeyEd25519 = PublicKeyEd25519([2u8; 32]);
+pub(crate) const VALIDATOR_3: PublicKeyEd25519 = PublicKeyEd25519([3u8; 32]);
+pub(crate) const VALIDATOR_4: PublicKeyEd25519 = PublicKeyEd25519([4u8; 32]);
+pub(crate) const VALIDATOR_5: PublicKeyEd25519 = PublicKeyEd25519([5u8; 32]);
+pub(crate) const VALIDATOR_6: PublicKeyEd25519 = PublicKeyEd25519([6u8; 32]);
+pub(crate) const VALIDATOR_7: PublicKeyEd25519 = PublicKeyEd25519([7u8; 32]);
+pub(crate) const VALIDATOR_8: PublicKeyEd25519 = PublicKeyEd25519([8u8; 32]);
+pub(crate) const VALIDATOR_9: PublicKeyEd25519 = PublicKeyEd25519([9u8; 32]);
+pub(crate) const VALIDATOR_10: PublicKeyEd25519 = PublicKeyEd25519([10u8; 32]);
+pub(crate) const VALIDATOR_11: PublicKeyEd25519 = PublicKeyEd25519([11u8; 32]);
+pub(crate) const VALIDATOR_12: PublicKeyEd25519 = PublicKeyEd25519([12u8; 32]);
+pub(crate) const VALIDATOR_13: PublicKeyEd25519 = PublicKeyEd25519([13u8; 32]);
+pub(crate) const VALIDATOR_14: PublicKeyEd25519 = PublicKeyEd25519([14u8; 32]);
 
 /// The number of validators.
 pub(crate) const NUMBER_OF_VALIDATORS: u8 = 15;
@@ -27,12 +27,12 @@ pub(crate) const NUMBER_OF_VALIDATORS: u8 = 15;
 pub(crate) const TOTAL_SUPPLY: u64 = 15 * 1000000000000000000u64;
 
 /// Internal function that returns a boolean if the given address is a validator.
-pub(crate) fn is_validator(validator: AccountAddress) -> bool {
+pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {
     addresses().contains(&validator)
 }
 
 /// Internal function that returns all validators.
-pub(crate) fn addresses() -> [AccountAddress; 15] {
+pub(crate) fn addresses() -> [PublicKeyEd25519; 15] {
     [
         VALIDATOR_0,
         VALIDATOR_1,
@@ -56,14 +56,14 @@ pub(crate) fn addresses() -> [AccountAddress; 15] {
 #[receive(
     contract = "staking_bank",
     name = "validators",
-    parameter = "AccountAddress",
-    return_value = "(AccountAddress,String)"
+    parameter = "PublicKeyEd25519",
+    return_value = "(PublicKeyEd25519,String)"
 )]
 pub(crate) fn validators<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<(AccountAddress, String)> {
-    let id: AccountAddress = ctx.parameter_cursor().get()?;
+) -> ReceiveResult<(PublicKeyEd25519, String)> {
+    let id: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
     match id {
         VALIDATOR_0 => Ok((id, "https://validator.umb.network".to_string())),
@@ -89,11 +89,11 @@ pub(crate) fn validators<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "getAddresses",
-    return_value = "[AccountAddress;15]"
+    return_value = "[PublicKeyEd25519;15]"
 )]
 pub(crate) fn get_addresses<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<[AccountAddress; 15]> {
+) -> ReceiveResult<[PublicKeyEd25519; 15]> {
     Ok(addresses())
 }

@@ -5,8 +5,8 @@ use concordium_std::*;
 
 // Sandbox constants and functions
 
-pub(crate) const VALIDATOR_0: AccountAddress = AccountAddress([0u8; 32]);
-pub(crate) const VALIDATOR_1: AccountAddress = AccountAddress([1u8; 32]);
+pub(crate) const VALIDATOR_0: PublicKeyEd25519 = PublicKeyEd25519([0u8; 32]);
+pub(crate) const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([1u8; 32]);
 
 /// The number of validators.
 pub(crate) const NUMBER_OF_VALIDATORS: u8 = 2;
@@ -14,12 +14,12 @@ pub(crate) const NUMBER_OF_VALIDATORS: u8 = 2;
 pub(crate) const TOTAL_SUPPLY: u64 = 2 * 1000000000000000000u64;
 
 /// Internal function that returns a boolean if the given address is a validator.
-pub(crate) fn is_validator(validator: AccountAddress) -> bool {
+pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {
     addresses().contains(&validator)
 }
 
 /// Internal function that returns all validators.
-pub(crate) fn addresses() -> [AccountAddress; 2] {
+pub(crate) fn addresses() -> [PublicKeyEd25519; 2] {
     [VALIDATOR_0, VALIDATOR_1]
 }
 
@@ -27,14 +27,14 @@ pub(crate) fn addresses() -> [AccountAddress; 2] {
 #[receive(
     contract = "staking_bank",
     name = "validators",
-    parameter = "AccountAddress",
-    return_value = "(AccountAddress,String)"
+    parameter = "PublicKeyEd25519",
+    return_value = "(PublicKeyEd25519,String)"
 )]
 pub(crate) fn validators<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<(AccountAddress, String)> {
-    let id: AccountAddress = ctx.parameter_cursor().get()?;
+) -> ReceiveResult<(PublicKeyEd25519, String)> {
+    let id: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
     match id {
         VALIDATOR_0 => Ok((id, "https://validator.umb.network".to_string())),
@@ -47,11 +47,11 @@ pub(crate) fn validators<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "getAddresses",
-    return_value = "[AccountAddress;2]"
+    return_value = "[PublicKeyEd25519;2]"
 )]
 pub(crate) fn get_addresses<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<[AccountAddress; 2]> {
+) -> ReceiveResult<[PublicKeyEd25519; 2]> {
     Ok(addresses())
 }
