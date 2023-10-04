@@ -13,9 +13,6 @@
 use concordium_std::*;
 use core::fmt::Debug;
 
-/// The concept of a CHAIN_ID does not exist on Concordium but kept for consistency.
-const CHAIN_ID: u16 = 49228;
-
 #[derive(Serialize, SchemaType, Copy, Clone, Debug, PartialOrd, Ord, PartialEq, Eq)]
 pub struct PriceData {
     /// This is a placeholder, that can be used for some additional data.
@@ -73,38 +70,36 @@ enum CustomContractError {
     InvokeContractError, // -4
     /// Failed to provide enough signatures.
     InvalidRequiredSignatures, // -5
-    /// Failed to because the chain id is wrong.
-    ChainIdMismatch, // -6
     /// Failed to because the data is outdated.
-    OldData, // -7
+    OldData, // -6
     /// Failed because it is the wrong contract.
-    WrongContract, // -8
+    WrongContract, // -7
     /// Failed because the signature is outdated.
-    Expired, // -9
+    Expired, // -8
     /// Failed because the feed does not exist.
-    FeedNotExist, // -10
+    FeedNotExist, // -9
     /// Failed because of unauthorized invoke of the entry point.
-    Unauthorized, // -11
+    Unauthorized, // -10
     /// Upgrade failed because the new module does not exist.
-    FailedUpgradeMissingModule, // -12
+    FailedUpgradeMissingModule, // -11
     /// Upgrade failed because the new module does not contain a contract with a
     /// matching name.
-    FailedUpgradeMissingContract, // -13
+    FailedUpgradeMissingContract, // -12
     /// Upgrade failed because the smart contract version of the module is not
     /// supported.
-    FailedUpgradeUnsupportedModuleVersion, // -14
+    FailedUpgradeUnsupportedModuleVersion, // -13
     /// Failed to verify signature because data was malformed.
-    MalformedData, // -15
+    MalformedData, // -14
     /// Failed signature verification because of an invalid signature.
-    WrongSignature, // -16
+    WrongSignature, // -15
     /// Failed because the account is missing on the chain.
-    MissingAccount, // -17
+    MissingAccount, // -16
     /// Failed because not enough signatures were provided.
-    NotEnoughSignatures, // -18
+    NotEnoughSignatures, // -17
     /// Failed because the signatures are not in order.
-    SignaturesOutOfOrder, // -19
+    SignaturesOutOfOrder, // -18
     /// Failed because one of the given signers is not a validator.
-    InvalidSigner, // -20
+    InvalidSigner, // -19
 }
 
 /// Mapping errors related to logging to CustomContractError.
@@ -254,8 +249,6 @@ pub struct Message {
     pub contract_address: ContractAddress,
     /// A timestamp to make signatures expire.
     pub timestamp: Timestamp,
-    /// A chain id that this message was intended for.
-    pub chain_id: u16,
     /// The price feed.
     pub price_feed: Vec<(String, PriceData)>,
 }
@@ -406,13 +399,6 @@ fn update<S: HasStateApi>(
     ensure!(
         message.timestamp > ctx.metadata().slot_time(),
         CustomContractError::Expired
-    );
-
-    // Check signature has correct chain_id.
-    ensure_eq!(
-        message.chain_id,
-        CHAIN_ID,
-        CustomContractError::ChainIdMismatch
     );
 
     verify_signatures(ctx, host, crypto_primitives)?;
@@ -570,15 +556,6 @@ fn get_price_timestamp_heartbeat<S: HasStateApi>(
         price_data.timestamp,
         price_data.heartbeat,
     ))
-}
-
-/// View function that returns the chain id.
-#[receive(contract = "umbrella_feeds", name = "getChainId", return_value = "u16")]
-fn get_chain_id<S: HasStateApi>(
-    _ctx: &impl HasReceiveContext,
-    _host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<u16> {
-    Ok(CHAIN_ID)
 }
 
 /// View function that returns the decimals value.

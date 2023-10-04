@@ -10,44 +10,45 @@ const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
 
 const SIGNATURE_1: SignatureEd25519 = SignatureEd25519([
-    62, 249, 216, 64, 254, 146, 219, 193, 206, 85, 5, 3, 8, 159, 59, 13, 220, 137, 7, 24, 223, 3,
-    175, 250, 197, 11, 60, 69, 23, 216, 168, 204, 14, 149, 79, 4, 53, 160, 185, 1, 64, 89, 235,
-    247, 68, 154, 180, 154, 184, 134, 106, 107, 63, 255, 162, 165, 144, 52, 5, 54, 117, 246, 85,
-    11,
+    164, 191, 6, 21, 217, 234, 176, 156, 185, 143, 216, 26, 124, 119, 131, 85, 224, 141, 17, 246,
+    247, 146, 73, 106, 223, 50, 233, 51, 210, 10, 32, 183, 130, 49, 169, 168, 205, 158, 101, 68,
+    140, 62, 16, 113, 143, 32, 3, 196, 129, 59, 5, 194, 10, 112, 236, 121, 42, 138, 46, 149, 233,
+    23, 62, 8,
 ]);
 
 const SIGNATURE_2: SignatureEd25519 = SignatureEd25519([
-    22, 201, 213, 137, 246, 0, 4, 72, 162, 15, 41, 249, 203, 196, 21, 119, 113, 193, 117, 154, 177,
-    236, 61, 1, 172, 130, 50, 63, 136, 145, 195, 172, 33, 2, 28, 19, 165, 86, 39, 169, 88, 60, 173,
-    150, 71, 220, 65, 195, 2, 131, 46, 131, 98, 188, 42, 123, 191, 240, 139, 211, 203, 99, 26, 6,
+    221, 2, 131, 233, 224, 151, 220, 44, 231, 253, 251, 56, 244, 211, 94, 96, 32, 151, 62, 173,
+    103, 122, 95, 9, 143, 157, 217, 56, 156, 208, 199, 107, 109, 250, 100, 155, 140, 251, 192, 227,
+    67, 144, 239, 106, 235, 189, 210, 177, 144, 127, 42, 87, 182, 4, 61, 98, 149, 248, 107, 208,
+    189, 122, 160, 7,
 ]);
 
 const SIGNATURE_TWO_PRICE_FEEDS_1: SignatureEd25519 = SignatureEd25519([
-    232, 217, 219, 103, 59, 31, 70, 31, 76, 128, 163, 240, 9, 235, 60, 68, 146, 123, 96, 90, 43,
-    166, 204, 43, 220, 254, 92, 142, 132, 163, 161, 68, 72, 167, 50, 120, 205, 218, 202, 102, 16,
-    11, 170, 25, 229, 141, 117, 233, 179, 90, 159, 237, 126, 56, 163, 47, 19, 127, 81, 124, 124,
-    242, 101, 12,
+    176, 166, 29, 94, 27, 30, 37, 164, 99, 249, 241, 187, 242, 243, 197, 91, 181, 113, 238, 44,
+    244, 5, 188, 251, 108, 212, 194, 43, 181, 88, 23, 32, 28, 136, 50, 14, 253, 112, 235, 97, 132,
+    135, 213, 134, 107, 220, 186, 245, 111, 98, 86, 238, 119, 24, 57, 200, 111, 38, 36, 100, 99,
+    220, 162, 10,
 ]);
 
 const SIGNATURE_TWO_PRICE_FEEDS_2: SignatureEd25519 = SignatureEd25519([
-    238, 25, 132, 147, 139, 172, 54, 151, 142, 195, 59, 126, 46, 204, 21, 247, 30, 186, 85, 237,
-    16, 41, 116, 22, 204, 35, 38, 222, 203, 79, 167, 86, 74, 228, 9, 11, 144, 178, 69, 227, 63,
-    107, 102, 121, 240, 237, 24, 4, 199, 88, 115, 162, 130, 206, 183, 141, 79, 242, 193, 144, 42,
-    205, 221, 10,
+    196, 61, 181, 111, 127, 185, 47, 4, 157, 76, 15, 236, 43, 10, 103, 167, 154, 110, 171, 53, 86,
+    46, 174, 244, 189, 250, 43, 118, 128, 34, 71, 147, 194, 61, 34, 251, 120, 228, 114, 13, 231,
+    74, 103, 84, 169, 23, 52, 136, 48, 136, 87, 117, 238, 213, 108, 155, 251, 168, 84, 193, 67,
+    181, 148, 7,
 ]);
 
 const SIGNATURE_ETH_CCD_FEEDS_1: SignatureEd25519 = SignatureEd25519([
-    159, 193, 0, 133, 68, 49, 251, 167, 191, 33, 12, 88, 229, 186, 240, 12, 71, 240, 169, 192, 87,
-    123, 98, 142, 245, 117, 233, 211, 92, 208, 209, 30, 67, 64, 117, 225, 161, 142, 219, 32, 193,
-    93, 31, 89, 247, 76, 54, 39, 152, 186, 192, 151, 2, 142, 105, 52, 93, 27, 132, 114, 221, 252,
-    248, 13,
+    139, 86, 122, 152, 201, 89, 126, 247, 247, 186, 92, 39, 185, 133, 142, 216, 12, 16, 2, 70, 47,
+    162, 226, 127, 199, 202, 188, 128, 231, 126, 149, 217, 113, 250, 193, 179, 231, 66, 112, 12,
+    126, 82, 159, 12, 69, 41, 28, 146, 216, 84, 199, 79, 65, 180, 211, 11, 94, 217, 66, 198, 137,
+    36, 231, 0,
 ]);
 
 const SIGNATURE_ETH_CCD_FEEDS_2: SignatureEd25519 = SignatureEd25519([
-    120, 223, 9, 151, 2, 222, 215, 181, 221, 168, 14, 103, 178, 27, 50, 33, 207, 172, 47, 89, 34,
-    120, 237, 111, 54, 140, 85, 192, 199, 164, 178, 219, 121, 92, 133, 20, 164, 189, 194, 59, 57,
-    199, 248, 175, 128, 168, 93, 120, 159, 203, 57, 92, 33, 111, 4, 129, 133, 22, 38, 36, 245, 6,
-    238, 14,
+    159, 74, 113, 181, 44, 16, 67, 8, 10, 128, 47, 127, 246, 134, 152, 159, 246, 107, 57, 218, 104,
+    14, 222, 209, 4, 217, 12, 117, 114, 181, 80, 215, 234, 18, 156, 143, 15, 180, 173, 174, 155,
+    217, 139, 240, 23, 209, 76, 66, 92, 13, 19, 152, 184, 216, 29, 23, 219, 167, 217, 158, 166, 95,
+    216, 7,
 ]);
 
 // Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
@@ -174,28 +175,6 @@ fn test_init() {
         _initialization_staking_bank,
     ) = setup_chain_and_contract();
 
-    // Checking getChainId
-
-    let invoke = chain
-        .contract_invoke(
-            ACC_ADDR_OWNER,
-            Address::Account(ACC_ADDR_OWNER),
-            Energy::from(10000),
-            UpdateContractPayload {
-                amount: Amount::zero(),
-                address: initialization_umbrella_feeds.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked(
-                    "umbrella_feeds.getChainId".to_string(),
-                ),
-                message: OwnedParameter::empty(),
-            },
-        )
-        .expect("Should be able to query");
-
-    let value: u16 = from_bytes(&invoke.return_value).expect("Should return a valid result");
-
-    assert_eq!(value, 49228);
-
     // Checking DECIMALS
 
     let invoke = chain
@@ -295,7 +274,6 @@ fn test_update_two_price_feeds() {
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization_umbrella_feeds.contract_address,
-            chain_id: 49228,
             price_feed: vec![(key_1.clone(), price_data_1), (key_2.clone(), price_data_2)],
         },
     };
@@ -327,7 +305,7 @@ fn test_update_two_price_feeds() {
         HashSha2256(message_hash)
     );
 
-    let signature:SignatureEd25519 = "EE1984938BAC36978EC33B7E2ECC15F71EBA55ED10297416CC2326DECB4FA7564AE4090B90B245E33F6B6679F0ED1804C75873A282CEB78D4FF2C1902ACDDD0A".parse().unwrap();
+    let signature:SignatureEd25519 = "B0A61D5E1B1E25A463F9F1BBF2F3C55BB571EE2CF405BCFB6CD4C22BB55817201C88320EFD70EB618487D5866BDCBAF56F6256EE771839C86F26246463DCA20A".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
@@ -456,7 +434,6 @@ fn test_update_price_feed() {
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization_umbrella_feeds.contract_address,
-            chain_id: 49228,
             price_feed: vec![(key_1.clone(), price_data)],
         },
     };
@@ -488,7 +465,7 @@ fn test_update_price_feed() {
         HashSha2256(message_hash)
     );
 
-    let signature:SignatureEd25519 = "16C9D589F6000448A20F29F9CBC4157771C1759AB1EC3D01AC82323F8891C3AC21021C13A55627A9583CAD9647DC41C302832E8362BC2A7BBFF08BD3CB631A06".parse().unwrap();
+    let signature:SignatureEd25519 = "A4BF0615D9EAB09CB98FD81A7C778355E08D11F6F792496ADF32E933D20A20B78231A9A8CD9E65448C3E10718F2003C4813B05C20A70EC792A8A2E95E9173E08".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
@@ -696,7 +673,6 @@ fn test_update_price_feed_and_check_price_via_feed_name() {
         message: Message {
             timestamp: Timestamp::from_timestamp_millis(10000000000),
             contract_address: initialization_umbrella_feeds.contract_address,
-            chain_id: 49228,
             price_feed: vec![(String::from("ETH-CCD"), price_data)],
         },
     };
@@ -728,7 +704,7 @@ fn test_update_price_feed_and_check_price_via_feed_name() {
         HashSha2256(message_hash)
     );
 
-    let signature:SignatureEd25519 = "9FC100854431FBA7BF210C58E5BAF00C47F0A9C0577B628EF575E9D35CD0D11E434075E1A18EDB20C15D1F59F74C362798BAC097028E69345D1B8472DDFCF80D".parse().unwrap();
+    let signature:SignatureEd25519 = "9F4A71B52C1043080A802F7FF686989FF66B39DA680EDED104D90C7572B550D7EA129C8F0FB4ADAE9BD98BF017D14C425C0D1398B8D81D17DBA7D99EA65FD807".parse().unwrap();
     println!("Signature: {:?}", signature.0);
 
     let public_key: PublicKeyEd25519 =
