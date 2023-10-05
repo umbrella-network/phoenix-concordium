@@ -31,7 +31,7 @@ In each of the above contract folders, you can run the integration test with the
 
 To test the `StakingBank` contract use the following command:
 
-```cargo concordium test -- --features production```
+```cargo concordium test -- --features development```
 
 # Using the makeFile
  

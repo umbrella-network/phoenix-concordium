@@ -233,7 +233,7 @@ fn test_validators() {
         (VALIDATOR_0, String::from("https://validator.umb.network"))
     );
 
-    // Checking addresses.
+    // Checking publicKey.
 
     let invoke = chain
         .contract_invoke(
@@ -243,7 +243,7 @@ fn test_validators() {
             UpdateContractPayload {
                 amount: Amount::zero(),
                 address: initialization_staking_bank.contract_address,
-                receive_name: OwnedReceiveName::new_unchecked("staking_bank.addresses".to_string()),
+                receive_name: OwnedReceiveName::new_unchecked("staking_bank.publicKey".to_string()),
                 message: OwnedParameter::from_serial(&0u8)
                     .expect("Should be a valid inut parameter"),
             },
@@ -398,7 +398,7 @@ fn test_init() {
 
     assert_eq!(value, 1000000000000000000);
 
-    // Checking `getAddresses`.
+    // Checking `getPublicKeys`.
 
     let invoke = chain
         .contract_invoke(
@@ -409,7 +409,7 @@ fn test_init() {
                 amount: Amount::zero(),
                 address: initialization_staking_bank.contract_address,
                 receive_name: OwnedReceiveName::new_unchecked(
-                    "staking_bank.getAddresses".to_string(),
+                    "staking_bank.getPublicKeys".to_string(),
                 ),
                 message: OwnedParameter::from_serial(&KEY_HASH_1)
                     .expect("Should be a valid inut parameter"),

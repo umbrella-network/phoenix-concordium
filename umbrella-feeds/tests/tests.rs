@@ -4,7 +4,9 @@ use concordium_smart_contract_testing::*;
 use concordium_std::HashSha2256;
 use concordium_std::{CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp};
 use registry::{AtomicUpdateParam, ImportContractsParam};
-use umbrella_feeds::{InitParamsUmbrellaFeeds, Message, PriceData, UpdateParams};
+use umbrella_feeds::{
+    InitParamsUmbrellaFeeds, Message, PriceData, SchemTypeTripleWrapper, UpdateParams,
+};
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
 const ACC_INITIAL_BALANCE: Amount = Amount::from_ccd(1000);
@@ -581,6 +583,35 @@ fn test_update_price_feed() {
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
     assert_eq!(stored_price_data, price_data.timestamp);
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.getPriceTimestampHeartbeat".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&key_1)
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query timestam");
+
+    let stored_price_data: SchemTypeTripleWrapper =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(
+        stored_price_data,
+        SchemTypeTripleWrapper {
+            price: price_data.price,
+            timestamp: price_data.timestamp,
+            heartbeat: price_data.heartbeat
+        }
+    );
 
     let invoke = chain
         .contract_invoke(

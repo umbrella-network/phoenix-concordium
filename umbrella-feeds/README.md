@@ -2,7 +2,7 @@
 
 This is the main contract for all on-chain data. 
 Relative prices are stored in this contract for different price feeds (not absolute prices). 
-E.g. for the `ETH-USD` price feed, the key will be the calculated as `hash("ETH-USD")`. The prices map can be querried with the key `hash("ETH-USD")` to get the associated price data.
+E.g. for the `ETH-USDC` price feed, the key will be the String `"ETH-USDC"`. The prices map can be queried with the key `"ETH-USDC"` to get the associated price data.
 
 ```
 pub struct PriceData {
@@ -18,7 +18,7 @@ pub struct PriceData {
 }
 ```
 
-The prices stored in the priceDate are relative prices. E.g. for the price feed `ETH-USDC`, the relative price stored in the smart contract is the value `ETH/USDC` (not `USDC/ETH`). Meaning the first token name is in the `numerator (base)` and the second token name is in the `denominator (quote)`.
+The prices stored in the `priceDate` are relative prices. E.g. for the price feed `ETH-USDC`, the relative price stored in the smart contract is the value `ETH/USDC` (not `USDC/ETH`). Meaning the first token name is in the `numerator (base)` and the second token name is in the `denominator (quote)`.
 
 The `UmbrellaFeedsReader` can be used to integrate easier (see its documentation) but it is recommended to integrate directly into this contract for a lower execution cost.
 

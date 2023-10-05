@@ -61,7 +61,6 @@ impl<T> From<CallContractError<T>> for CustomContractError {
 }
 
 /// Init function that creates a new smart contract.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
 #[init(contract = "staking_bank")]
 fn init<S: HasStateApi>(
     _ctx: &impl HasInitContext,
@@ -116,16 +115,16 @@ fn balances<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
-    let account: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
+    let key: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
-    if is_validator(account) {
+    if is_validator(key) {
         Ok(ONE)
     } else {
         Ok(0u64)
     }
 }
 
-/// View function that returns a true, if all of the provided account addresses are validators, otherwise a false.
+/// View function that returns a true, if all of the provided public keys are validators, otherwise a false.
 #[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
 #[receive(
     contract = "staking_bank",
@@ -137,9 +136,9 @@ fn verify_validators<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<bool> {
-    let accounts: Vec<PublicKeyEd25519> = ctx.parameter_cursor().get()?;
+    let keys: Vec<PublicKeyEd25519> = ctx.parameter_cursor().get()?;
 
-    for validator in accounts {
+    for validator in keys {
         if !is_validator(validator) {
             return Ok(false);
         }
@@ -181,20 +180,20 @@ fn get_balances<S: HasStateApi>(
     Ok(balances)
 }
 
-/// View function that returns the address of a validator from an index.
+/// View function that returns the public key of a validator from an index.
 #[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
 #[receive(
     contract = "staking_bank",
-    name = "addresses",
+    name = "publicKey",
     parameter = "u8",
     return_value = "PublicKeyEd25519"
 )]
-fn addresses_external<S: HasStateApi>(
+fn public_key<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<PublicKeyEd25519> {
     let index: u8 = ctx.parameter_cursor().get()?;
-    Ok(addresses()[usize::from(index)])
+    Ok(public_keys()[usize::from(index)])
 }
 
 /// View function that returns the balance of an validator. This is to follow ERC20 interface.
@@ -209,9 +208,9 @@ fn balance_of<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<u64> {
-    let account: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
+    let key: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
-    if is_validator(account) {
+    if is_validator(key) {
         Ok(ONE)
     } else {
         Ok(0u64)
@@ -228,7 +227,7 @@ fn total_supply_2<S: HasStateApi>(
     Ok(TOTAL_SUPPLY)
 }
 
-/// View function that returns the key hash of this contract.
+/// View function that returns the key/name of this contract.
 #[receive(contract = "staking_bank", name = "getName", return_value = "String")]
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,

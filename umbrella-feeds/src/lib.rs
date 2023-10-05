@@ -257,7 +257,7 @@ pub struct Message {
 /// Takes a vector of signers and signatures, and the message that was signed.
 #[derive(Serialize, SchemaType)]
 pub struct UpdateParams {
-    /// Signers and signatures. The signatures are in a two-level map to support multi-sig accounts.
+    /// Signers and signatures.
     pub signers_and_signatures: Vec<(PublicKeyEd25519, SignatureEd25519)>,
     /// Message that was signed.
     pub message: Message,
@@ -266,7 +266,7 @@ pub struct UpdateParams {
 #[derive(Serialize)]
 #[concordium(transparent)]
 pub struct UpdateParamsPartial {
-    /// Signers and signatures. The signatures are in a two-level map to support multi-sig accounts.
+    /// Signers and signatures.
     pub signers_and_signatures: Vec<(PublicKeyEd25519, SignatureEd25519)>,
 }
 
@@ -279,7 +279,7 @@ pub struct UpdateParamsPartial {
     crypto_primitives,
     mutable
 )]
-fn contract_view_message_hash<S: HasStateApi>(
+fn view_message_hash<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &mut impl HasHost<State<S>, StateApiType = S>,
     crypto_primitives: &impl HasCryptoPrimitives,
@@ -327,7 +327,7 @@ fn verify_signatures<S: HasStateApi>(
 
     let mut prev_signer: Option<PublicKeyEd25519> = None;
 
-    let message_hash = contract_view_message_hash(ctx, host, crypto_primitives)?;
+    let message_hash = view_message_hash(ctx, host, crypto_primitives)?;
 
     let required_signatures = host.state().required_signatures;
 
@@ -368,7 +368,7 @@ fn verify_signatures<S: HasStateApi>(
         .ok_or(CustomContractError::InvokeContractError)?
         .get()?;
 
-    ensure_eq!(are_valid_signers, true, CustomContractError::InvalidSigner);
+    ensure!(are_valid_signers, CustomContractError::InvalidSigner);
 
     Ok(())
 }
@@ -531,8 +531,12 @@ fn get_price_timestamp<S: HasStateApi>(
     Ok(price_data.timestamp)
 }
 
-#[derive(SchemaType, Serial)]
-pub struct SchemTypeTripleWrapper(u128, Timestamp, u64);
+#[derive(SchemaType, Serial, Deserial, Debug, PartialEq, Eq)]
+pub struct SchemTypeTripleWrapper {
+    pub price: u128,
+    pub timestamp: Timestamp,
+    pub heartbeat: u64,
+}
 
 /// View function that returns the price, timestamp, and heartbeat of one price feed.
 #[receive(
@@ -553,11 +557,11 @@ fn get_price_timestamp_heartbeat<S: HasStateApi>(
         .get(&key)
         .ok_or(CustomContractError::FeedNotExist)?;
 
-    Ok(SchemTypeTripleWrapper(
-        price_data.price,
-        price_data.timestamp,
-        price_data.heartbeat,
-    ))
+    Ok(SchemTypeTripleWrapper {
+        price: price_data.price,
+        timestamp: price_data.timestamp,
+        heartbeat: price_data.heartbeat,
+    })
 }
 
 /// View function that returns the decimals value.

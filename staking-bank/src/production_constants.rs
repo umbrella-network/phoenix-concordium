@@ -26,13 +26,13 @@ pub(crate) const NUMBER_OF_VALIDATORS: u8 = 15;
 /// total supply = number_of_validators * ONE.
 pub(crate) const TOTAL_SUPPLY: u64 = 15 * 1000000000000000000u64;
 
-/// Internal function that returns a boolean if the given address is a validator.
+/// Internal function that returns a boolean if the given public key is a validator.
 pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {
-    addresses().contains(&validator)
+    public_keys().contains(&validator)
 }
 
 /// Internal function that returns all validators.
-pub(crate) fn addresses() -> [PublicKeyEd25519; 15] {
+pub(crate) fn public_keys() -> [PublicKeyEd25519; 15] {
     [
         VALIDATOR_0,
         VALIDATOR_1,
@@ -52,7 +52,7 @@ pub(crate) fn addresses() -> [PublicKeyEd25519; 15] {
     ]
 }
 
-/// View function that returns validator's URL (as well as the inputted account address). The function throws an error if the address is not a validator.
+/// View function that returns validator's URL (as well as the inputted public key). The function throws an error if the public key is not a validator.
 #[receive(
     contract = "staking_bank",
     name = "validators",
@@ -85,15 +85,15 @@ pub(crate) fn validators<S: HasStateApi>(
     }
 }
 
-/// View function that returns all validator addresses.
+/// View function that returns all validators' public keys.
 #[receive(
     contract = "staking_bank",
-    name = "getAddresses",
+    name = "getPublicKeys",
     return_value = "[PublicKeyEd25519;15]"
 )]
-pub(crate) fn get_addresses<S: HasStateApi>(
+pub(crate) fn get_public_keys<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
 ) -> ReceiveResult<[PublicKeyEd25519; 15]> {
-    Ok(addresses())
+    Ok(public_keys())
 }
