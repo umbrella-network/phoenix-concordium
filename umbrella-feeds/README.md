@@ -19,10 +19,6 @@ pub struct PriceData {
 
 The prices stored in the `priceDate` are relative prices. E.g. for the price feed `ETH-USDC`, the relative price stored in the smart contract is the value `ETH/USDC` (not `USDC/ETH`). Meaning the first token name is in the `numerator (base)` and the second token name is in the `denominator (quote)`.
 
-The `UmbrellaFeedsReader` can be used to integrate easier (see its documentation) but it is recommended to integrate directly into this contract for a lower execution cost.
-
 ATTENTION: Keep the `upgradeNatively`/`unregister` entry points in this contract at all times and make sure their logic can be
 executed successfully via an invoke to the `atomicUpdate` entry point in the `registry` contract. Otherwise, you will not be able to
 natively upgrade this contract via the `registry` contract anymore.
-Using the native upgradability mechanism for this contract is necessary to not break the `UmbrellaFeedsReader` contracts
-which include references to this `UmbrellaFeeds` contract.

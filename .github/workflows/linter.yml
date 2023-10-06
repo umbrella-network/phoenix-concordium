@@ -24,7 +24,6 @@ jobs:
           - registry/Cargo.toml
           - staking-bank/Cargo.toml
           - umbrella-feeds/Cargo.toml
-          - umbrella-feeds-reader/Cargo.toml
           - dummy-contract/Cargo.toml
 
     steps:
@@ -58,7 +57,6 @@ jobs:
           - registry/Cargo.toml
           - staking-bank/Cargo.toml
           - umbrella-feeds/Cargo.toml
-          - umbrella-feeds-reader/Cargo.toml
           - dummy-contract/Cargo.toml
 
     steps:
@@ -93,7 +91,6 @@ jobs:
           - registry/Cargo.toml
           - staking-bank/Cargo.toml --features production
           - umbrella-feeds/Cargo.toml
-          - umbrella-feeds-reader/Cargo.toml
           - dummy-contract/Cargo.toml
 
     steps:
@@ -130,7 +127,6 @@ jobs:
           - staking-bank/Cargo.toml --features development
           - staking-bank/Cargo.toml --features sandbox
           - umbrella-feeds/Cargo.toml
-          - umbrella-feeds-reader/Cargo.toml
           - dummy-contract/Cargo.toml
 
         features:
@@ -171,7 +167,6 @@ jobs:
           - staking-bank/Cargo.toml --features development
           - staking-bank/Cargo.toml --features sandbox
           - umbrella-feeds/Cargo.toml
-          - umbrella-feeds-reader/Cargo.toml
           - dummy-contract/Cargo.toml
 
         features:

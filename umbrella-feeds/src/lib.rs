@@ -3,13 +3,10 @@
 //! # Umbrella feeds
 //!
 //! Main contract for all on-chain data.
-//! Check `UmbrellaFeedsReader` to see how to integrate.
 //!
 //! ATTENTION: Keep the `upgradeNatively`/`unregister` entry points in this contract at all times and make sure their logic can be
 //! executed successfully via an invoke to the `atomicUpdate` entry point in the `registry` contract. Otherwise, you will not be able to
 //! natively upgrade this contract via the `registry` contract anymore.
-//! Using the native upgradability mechanism for this contract is necessary to not break the `UmbrellaFeedsReader` contracts
-//! which include references to this `UmbrellaFeeds` contract.
 use concordium_std::*;
 use core::fmt::Debug;
 

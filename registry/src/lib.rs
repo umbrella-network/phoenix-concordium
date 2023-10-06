@@ -9,7 +9,6 @@
 //! - Natively upgrade the `UmbrellaFeeds` contract via this registry contract by invoking the `atomicUpdate` entry point.
 //! - Override contract addresses registered (e.g. in case they don't have the entry points `upgradeNatively` implemented) by invoking the `importAddresses` and the `importContracts` entry points.
 //! ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
-//! Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 use concordium_std::*;
 use core::fmt::Debug;
 
@@ -131,7 +130,6 @@ pub struct ImportAddressesParams {
 /// The owner can import new contract addresses and override old addresses (if they exist under the provided name) by providing the new contract address and its key/name.
 /// This entry point can be used for contracts that for some reason do not have the `getName` entry point.
 /// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
-/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 #[receive(
     contract = "registry",
     name = "importAddresses",
@@ -179,7 +177,6 @@ pub struct ImportContractsParam {
 
 /// The owner can import new contract addresses and override old addresses (if they exist under the provided name) by providing the new contract address. The key/name of the contract is queried from the provided contract address.
 /// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use the `atomicUpdate` function to natively upgrade the `UmbrellaFeeds` contract.
-/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 #[receive(
     contract = "registry",
     name = "importContracts",
@@ -249,7 +246,6 @@ pub struct UpgradeParams {
 
 /// This entry point ensures, that the old and the new contracts are aware of their states in the registry by calling the `upgradeNatively` and the `unregister` hooks.
 /// ATTENTION: If you want to upgrade the `UmbrellaFeeds` contract, use this function to natively upgrade the `UmbrellaFeeds` contract.
-/// Using the native upgradability mechanism for the `UmbrellaFeeds` contract is necessary to not break the `UmbrellaFeedsReader` contracts which include references to the `UmbrellaFeeds` contract.
 #[receive(
     contract = "registry",
     name = "atomicUpdate",
