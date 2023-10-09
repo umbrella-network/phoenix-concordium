@@ -1,0 +1,27 @@
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[package]
+name = "registry"
+version = "1.0.0"
+edition = "2021"
+license = "MPL-2.0"
+authors = [ "Concordium <developers@concordium.com>" ]
+description = "An oracle system. This registry contract includes all the contract addresses of the protocol."
+
+[features]
+default = ["std"]
+std = ["concordium-std/std"]
+wee_alloc = ["concordium-std/wee_alloc"]
+
+[dependencies]
+concordium-std = {version = "8.0", default-features = false}
+
+[dev-dependencies]
+concordium-smart-contract-testing = "3.0"
+
+[lib]
+crate-type=["cdylib", "rlib"]
+
+[profile.release]
+opt-level = "s"
+codegen-units = 1
