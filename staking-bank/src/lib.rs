@@ -19,12 +19,11 @@ mod sandbox_constants;
 #[cfg(feature = "sandbox")]
 use sandbox_constants::*;
 
-/// one = 1 * 10^18.
 #[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
-const ONE: StakingBalanceAmount = 1000000000000000000u64;
+const ONE: StakingBalanceAmount = 1u8;
 
 #[allow(dead_code)]
-type StakingBalanceAmount = u64;
+type StakingBalanceAmount = u8;
 
 #[derive(Serial, Deserial)]
 pub struct State {}
@@ -131,7 +130,7 @@ fn balances<S: HasStateApi>(
     if is_validator(key) {
         Ok(ONE)
     } else {
-        Ok(0u64)
+        Ok(0u8)
     }
 }
 
@@ -224,7 +223,7 @@ fn balance_of<S: HasStateApi>(
     if is_validator(key) {
         Ok(ONE)
     } else {
-        Ok(0u64)
+        Ok(0u8)
     }
 }
 

@@ -133,9 +133,9 @@ fn test_balances() {
         )
         .expect("Should be able to query the balance");
 
-    let value: u64 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 1000000000000000000);
+    assert_eq!(value, 1);
 
     let invoke = chain
         .contract_invoke(
@@ -152,7 +152,7 @@ fn test_balances() {
         )
         .expect("Should be able to query the balance");
 
-    let value: u64 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
     assert_eq!(value, 0);
 
@@ -174,9 +174,9 @@ fn test_balances() {
         )
         .expect("Should be able to query the balance");
 
-    let value: Vec<u64> = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: Vec<u8> = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    let one = 1000000000000000000u64;
+    let one = 1u8;
 
     assert_eq!(value, vec![one, one]);
 
@@ -197,9 +197,9 @@ fn test_balances() {
         )
         .expect("Should be able to query the balance");
 
-    let value: u64 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 1000000000000000000u64);
+    assert_eq!(value, 1u8);
 }
 
 #[test]
@@ -350,9 +350,9 @@ fn test_init() {
         )
         .expect("Should be able to query value");
 
-    let value: u64 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 2000000000000000000);
+    assert_eq!(value, 2);
 
     // Checking `totalSupply`.
 
@@ -373,9 +373,9 @@ fn test_init() {
         )
         .expect("Should be able to query value");
 
-    let value: u64 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 2000000000000000000);
+    assert_eq!(value, 2);
 
     // Checking `ONE`.
 
@@ -394,9 +394,9 @@ fn test_init() {
         )
         .expect("Should be able to query value");
 
-    let value: u64 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+    let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
-    assert_eq!(value, 1000000000000000000);
+    assert_eq!(value, 1);
 
     // Checking `getPublicKeys`.
 
