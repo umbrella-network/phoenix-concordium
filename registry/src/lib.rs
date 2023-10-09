@@ -329,14 +329,11 @@ fn require_and_get_address<S: HasStateApi>(
 ) -> ReceiveResult<ContractAddress> {
     let key_name: String = ctx.parameter_cursor().get()?;
 
-    let contract_address = host
-        .state()
+    host.state()
         .registry
         .get(&key_name)
         .map(|s| *s)
-        .ok_or(CustomContractError::NameNotRegistered)?;
-
-    Ok(contract_address)
+        .ok_or_else(|| CustomContractError::NameNotRegistered.into())
 }
 
 /// View function that returns the owner address.

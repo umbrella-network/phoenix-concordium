@@ -25,6 +25,6 @@ fn init<S: HasStateApi>(
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<String> {
-    Ok(String::from("MyName"))
+) -> ReceiveResult<&'static str> {
+    Ok("MyName")
 }

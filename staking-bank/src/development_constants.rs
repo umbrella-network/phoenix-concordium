@@ -19,10 +19,12 @@ pub(crate) const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([
     243, 162, 209, 78, 136, 94, 127, 247, 21, 222, 221,
 ]);
 
+type StakingBalanceAmount = u64;
+
 /// The number of validators.
 pub(crate) const NUMBER_OF_VALIDATORS: u8 = 2;
 /// total supply = number_of_validators * ONE.
-pub(crate) const TOTAL_SUPPLY: u64 = 2 * 1000000000000000000u64;
+pub(crate) const TOTAL_SUPPLY: StakingBalanceAmount = 2 * 1000000000000000000u64;
 
 /// Internal function that returns a boolean if the given public key is a validator.
 pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {

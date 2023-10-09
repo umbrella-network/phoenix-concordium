@@ -21,7 +21,10 @@ use sandbox_constants::*;
 
 /// one = 1 * 10^18.
 #[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
-const ONE: u64 = 1000000000000000000u64;
+const ONE: StakingBalanceAmount = 1000000000000000000u64;
+
+#[allow(dead_code)]
+type StakingBalanceAmount = u64;
 
 #[derive(Serial, Deserial)]
 pub struct State {}
@@ -85,21 +88,29 @@ fn number_of_validators<S: HasStateApi>(
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `TOTAL_SUPPLY`.
 #[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
-#[receive(contract = "staking_bank", name = "TOTAL_SUPPLY", return_value = "u64")]
+#[receive(
+    contract = "staking_bank",
+    name = "TOTAL_SUPPLY",
+    return_value = "StakingBalanceAmount"
+)]
 fn total_supply_1<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<u64> {
+) -> ReceiveResult<StakingBalanceAmount> {
     Ok(TOTAL_SUPPLY)
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `ONE`.
 #[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
-#[receive(contract = "staking_bank", name = "ONE", return_value = "u64")]
+#[receive(
+    contract = "staking_bank",
+    name = "ONE",
+    return_value = "StakingBalanceAmount"
+)]
 fn one<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<u64> {
+) -> ReceiveResult<StakingBalanceAmount> {
     Ok(ONE)
 }
 
@@ -109,12 +120,12 @@ fn one<S: HasStateApi>(
     contract = "staking_bank",
     name = "balances",
     parameter = "PublicKeyEd25519",
-    return_value = "u64"
+    return_value = "StakingBalanceAmount"
 )]
 fn balances<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<u64> {
+) -> ReceiveResult<StakingBalanceAmount> {
     let key: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
     if is_validator(key) {
@@ -166,12 +177,12 @@ fn get_number_of_validators<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "getBalances",
-    return_value = "Vec<u64>"
+    return_value = "Vec<StakingBalanceAmount>"
 )]
 fn get_balances<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<Vec<u64>> {
+) -> ReceiveResult<Vec<StakingBalanceAmount>> {
     let mut balances = Vec::with_capacity(NUMBER_OF_VALIDATORS as usize);
     for _i in 0..NUMBER_OF_VALIDATORS {
         balances.push(ONE)
@@ -202,12 +213,12 @@ fn public_key<S: HasStateApi>(
     contract = "staking_bank",
     name = "balanceOf",
     parameter = "PublicKeyEd25519",
-    return_value = "u64"
+    return_value = "StakingBalanceAmount"
 )]
 fn balance_of<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<u64> {
+) -> ReceiveResult<StakingBalanceAmount> {
     let key: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
     if is_validator(key) {
@@ -219,11 +230,15 @@ fn balance_of<S: HasStateApi>(
 
 /// View function that returns the total supply value. This is to follow ERC20 interface.
 #[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
-#[receive(contract = "staking_bank", name = "totalSupply", return_value = "u64")]
+#[receive(
+    contract = "staking_bank",
+    name = "totalSupply",
+    return_value = "StakingBalanceAmount"
+)]
 fn total_supply_2<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<u64> {
+) -> ReceiveResult<StakingBalanceAmount> {
     Ok(TOTAL_SUPPLY)
 }
 
@@ -232,8 +247,8 @@ fn total_supply_2<S: HasStateApi>(
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<String> {
-    Ok(String::from("StakingBank"))
+) -> ReceiveResult<&'static str> {
+    Ok("StakingBank")
 }
 
 /// The parameter type for the contract function `upgrade`.

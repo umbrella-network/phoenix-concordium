@@ -19,19 +19,8 @@ pub struct PriceData {
     pub heartbeat: u64,
     /// It is the time the validators run consensus to decide on the price data.
     pub timestamp: Timestamp,
-    /// The price.
+    /// The relative price.
     pub price: u128,
-}
-
-impl PriceData {
-    fn default() -> PriceData {
-        PriceData {
-            data: 0,
-            heartbeat: 0,
-            timestamp: Timestamp::from_timestamp_millis(0),
-            price: 0,
-        }
-    }
 }
 
 #[derive(Serial, DeserialWithState)]
@@ -249,7 +238,7 @@ pub struct Message {
     pub price_feed: Vec<(String, PriceData)>,
 }
 
-/// The parameter type for the contract function `update`.
+/// The parameter type for the contract function `update` and `view_message_hash`.
 /// Takes a vector of signers and signatures, and the message that was signed.
 #[derive(Serialize, SchemaType)]
 pub struct UpdateParams {
@@ -259,6 +248,10 @@ pub struct UpdateParams {
     pub message: Message,
 }
 
+/// The `UpdateParamsPartial` parameter type is used in the `view_message_hash` function.
+/// The input parameter of the `view_message_hash` function is `UpdateParams` but we only read the initial part of it
+/// with this `UpdateParamsPartial` parameter. I.e. we read the `signatures` and the
+/// `signers`, but not the `message`. This allows us to read purely the `message` later and operate on the `message` bytes.
 #[derive(Serialize)]
 #[concordium(transparent)]
 pub struct UpdateParamsPartial {
@@ -271,7 +264,7 @@ pub struct UpdateParamsPartial {
     contract = "umbrella_feeds",
     name = "viewMessageHash",
     parameter = "UpdateParams",
-    return_value = "[u8;32]",
+    return_value = "HashSha2256",
     crypto_primitives,
     mutable
 )]
@@ -279,7 +272,7 @@ fn view_message_hash<S: HasStateApi>(
     ctx: &impl HasReceiveContext,
     _host: &mut impl HasHost<State<S>, StateApiType = S>,
     crypto_primitives: &impl HasCryptoPrimitives,
-) -> Result<[u8; 32], CustomContractError> {
+) -> Result<HashSha2256, CustomContractError> {
     // Parse the parameter.
     let mut cursor = ctx.parameter_cursor();
     // The input parameter is `UpdateParams` but we only read the initial part of it
@@ -297,7 +290,7 @@ fn view_message_hash<S: HasStateApi>(
 
     let message_hash = crypto_primitives.hash_sha2_256(&message_bytes).0;
 
-    Ok(message_hash)
+    Ok(HashSha2256(message_hash))
 }
 
 /// Helper function to verify the signature.
@@ -339,7 +332,7 @@ fn verify_signatures<S: HasStateApi>(
 
         //Check signature.
         let valid_signature =
-            crypto_primitives.verify_ed25519_signature(signer, signature, &message_hash);
+            crypto_primitives.verify_ed25519_signature(signer, signature, &message_hash.0);
 
         ensure!(valid_signature, CustomContractError::WrongSignature);
 
@@ -405,20 +398,22 @@ fn update<S: HasStateApi>(
         let price_key: String = element.0;
         let new_price_data: PriceData = element.1;
 
-        let mut stored_price_data = host
-            .state_mut()
-            .prices
-            .entry(price_key)
-            .or_insert_with(PriceData::default);
+        let stored_price_data = host.state_mut().prices.entry(price_key);
 
-        // We do not allow for older prices.
-        // This prevents replay attacks by preventing reusing of signatures at the same time.
-        ensure!(
-            stored_price_data.timestamp < new_price_data.timestamp,
-            CustomContractError::OldData
-        );
-
-        *stored_price_data = new_price_data;
+        match stored_price_data {
+            Entry::Occupied(mut oe) => {
+                // We do not allow for older prices.
+                // This prevents replay attacks by preventing reusing of signatures at the same time.
+                ensure!(
+                    oe.timestamp < new_price_data.timestamp,
+                    CustomContractError::OldData
+                );
+                *oe = new_price_data;
+            }
+            Entry::Vacant(ve) => {
+                ve.insert(new_price_data);
+            }
+        }
     }
 
     Ok(())
@@ -429,8 +424,8 @@ fn update<S: HasStateApi>(
 fn get_name<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State<S>, StateApiType = S>,
-) -> ReceiveResult<String> {
-    Ok(String::from("UmbrellaFeeds"))
+) -> ReceiveResult<&'static str> {
+    Ok("UmbrellaFeeds")
 }
 
 /// View function that returns many price data. It throws if price feed does not exist.
@@ -527,10 +522,15 @@ fn get_price_timestamp<S: HasStateApi>(
     Ok(price_data.timestamp)
 }
 
+/// The return_value type for the contract function `getPriceTimestampHeartbeat`.
+/// It is a struct containing the three values `price`, `timestamp`, and `heartbeat`.
 #[derive(SchemaType, Serial, Deserial, Debug, PartialEq, Eq)]
 pub struct SchemTypeTripleWrapper {
+    /// The relative price.
     pub price: u128,
+    /// It is the time the validators run consensus to decide on the price data.
     pub timestamp: Timestamp,
+    /// The heartbeat specifies the interval in seconds that the price data will be refreshed in case the price stays flat.
     pub heartbeat: u64,
 }
 
