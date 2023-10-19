@@ -1,18 +1,21 @@
 pub mod deployer;
-use anyhow::{Context, Error};
+use anyhow::{bail, Context, Error};
 use concordium_rust_sdk::{
     common::types::Amount,
     smart_contracts::{
         common::{self as contracts_common},
+        common::{Deserial, ParseResult},
+        engine::v1::ReturnValue,
+        types::InvokeContractResult::{Failure, Success},
         types::{OwnedContractName, OwnedParameter, OwnedReceiveName},
     },
     types::{
-        smart_contracts::{ModuleReference, WasmModule},
+        smart_contracts::{ContractContext, ModuleReference, WasmModule, DEFAULT_INVOKE_ENERGY},
         transactions,
         transactions::InitContractPayload,
         ContractAddress,
     },
-    v2,
+    v2::{self, BlockIdentifier},
 };
 use deployer::{DeployResult, Deployer, InitResult};
 use registry::ImportContractsParam;
@@ -28,6 +31,21 @@ fn get_wasm_module(file: &Path) -> Result<WasmModule, Error> {
     let mut cursor = Cursor::new(wasm_module);
     let wasm_module: WasmModule = concordium_rust_sdk::common::from_bytes(&mut cursor)?;
     Ok(wasm_module)
+}
+
+/// Try to parse the return value into a type that implements [`Deserial`].
+///
+/// Ensures that all bytes of the return value are read.
+pub fn parse_return_value<T: Deserial>(return_value: ReturnValue) -> ParseResult<T> {
+    use contracts_common::{Cursor, Get, ParseError};
+    let mut cursor = Cursor::new(return_value.clone());
+    let res = cursor.get()?;
+    // Check that all bytes have been read, as leftover bytes usually indicate
+    // errors.
+    if cursor.offset != return_value.len() {
+        return Err(ParseError::default());
+    }
+    Ok(res)
 }
 
 /// Deploys a wasm module given the path to the file.
@@ -280,7 +298,90 @@ async fn main() -> Result<(), Error> {
             key_file,
             registry_contract,
             new_staking_bank,
-        } => {}
+        } => {
+            // Setting up connection
+            let concordium_client = v2::Client::new(url).await?;
+
+            let mut deployer = Deployer::new(concordium_client, &key_file)?;
+
+            // Checking that module reference is different to the staking_bank module reference registered in the registry
+
+            // Getting the module reference from the new staking bank
+            let new_wasm_module = get_wasm_module(&new_staking_bank)?;
+
+            let new_module_reference = new_wasm_module.get_module_ref();
+
+            println!("{}", new_module_reference);
+
+            // Getting the module reference from the staking bank already registered in the registry
+
+            let bytes = contracts_common::to_bytes(&"StakingBank");
+
+            let payload = transactions::UpdateContractPayload {
+                amount: Amount::from_ccd(0),
+                address: registry_contract,
+                receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
+                message: bytes.try_into()?,
+            };
+
+            // Checking module reference of already deployed staking_bank contract.
+            let context = ContractContext::new_from_payload(
+                deployer.key.address,
+                DEFAULT_INVOKE_ENERGY,
+                payload,
+            );
+
+            let result = deployer
+                .client
+                .invoke_instance(&BlockIdentifier::LastFinal, &context)
+                .await?;
+
+            let old_staking_contract: ContractAddress = match result.response {
+                Success {
+                    return_value,
+                    events: _,
+                    used_energy: _,
+                } => parse_return_value::<ContractAddress>(return_value.unwrap().into()).unwrap(),
+                Failure {
+                    return_value: _,
+                    reason: _cce,
+                    used_energy: _,
+                } => bail!("Failed querying staking bank address from registry"),
+            };
+
+            let info = deployer
+                .client
+                .get_instance_info(old_staking_contract, &BlockIdentifier::LastFinal)
+                .await
+                .unwrap();
+
+            let old_module_reference = info.response.source_module();
+
+            if old_module_reference == new_module_reference {
+                bail!("The new staking contract module reference is identical to the old staking contract module reference as it is registered in the registry contract.")
+            } else {
+                // Deploying new staking_bank wasm modules
+
+                let new_staking_bank_module_reference =
+                    deploy_module(&mut deployer.clone(), &new_staking_bank).await?;
+
+                // Initializing staking_bank
+
+                print!("\nInitializing new staking_bank contract....");
+
+                let payload = InitContractPayload {
+                    init_name: OwnedContractName::new("init_staking_bank".into())?,
+                    amount: Amount::from_micro_ccd(0),
+                    mod_ref: new_staking_bank_module_reference,
+                    param: OwnedParameter::empty(),
+                };
+
+                let _init_result_staking_bank: InitResult = deployer
+                    .init_contract(payload, None, None)
+                    .await
+                    .context("Failed to initialize the new staking bank contract.")?;
+            }
+        }
         // Upgrading the umbrella_feeds contract
         Command::UpgradeUmbrellaFeeds { url, key_file } => {
             // Setting up connection
