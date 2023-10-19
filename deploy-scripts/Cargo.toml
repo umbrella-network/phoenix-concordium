@@ -14,3 +14,4 @@ concordium-rust-sdk="3"
 registry = {path = "../registry"}
 umbrella-feeds = {path = "../umbrella-feeds"}
 staking-bank = {path = "../staking-bank"}
+structopt = "0.3.26"

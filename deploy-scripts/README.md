@@ -68,7 +68,7 @@ cargo concordium build --out ./deploy-scripts/default.wasm.v1
 Navigate into the deploy-scripts folder and run the example with the `default` smart contract (replace your wallet account in the below command):
 
 ```
-cargo run -- --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --module ../registry/registry.wasm.v1
+cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export
 ```
 
 The output should be:
