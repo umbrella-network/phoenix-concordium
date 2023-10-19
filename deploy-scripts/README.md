@@ -67,8 +67,28 @@ cargo concordium build --out ./deploy-scripts/default.wasm.v1
 
 Navigate into the deploy-scripts folder and run the example with the `default` smart contract (replace your wallet account in the below command):
 
+To deploy a fresh new protocol:
+
 ```
 cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export
+```
+
+To register contracts in the regsitry:
+
+```
+cargo run register --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --contract "<7076,0>" --contract "<7075,0>" 
+```
+
+To upgrade the staking bank contract:
+
+```
+cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
+```
+
+To upgrade the umbrella feeds contract:
+
+```
+cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 ```
 
 The output should be:
