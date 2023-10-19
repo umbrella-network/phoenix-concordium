@@ -164,6 +164,19 @@ enum Command {
                     (e.g. ./myPath/3PXwJYYPf6fyVb4GJquxSZU8puxrHfzc4XogdMVot8MUQK53tW.export)."
         )]
         key_file: PathBuf,
+        #[structopt(
+            long = "registry",
+            help = "Path to the file containing the Concordium account keys exported from the wallet \
+                    (e.g. ./myPath/3PXwJYYPf6fyVb4GJquxSZU8puxrHfzc4XogdMVot8MUQK53tW.export)."
+        )]
+        registry_contract: ContractAddress,
+        #[structopt(
+            long = "new_umbrella_feeds",
+            help = "Path of the Concordium smart contract module. Use this flag several times if you \
+                    have several smart contract modules to be deployed (e.g. --module \
+                    ./myPath/default.wasm.v1 --module ./default2.wasm.v1)."
+        )]
+        new_umbrella_feeds: PathBuf,
     },
 }
 
@@ -324,7 +337,6 @@ async fn main() -> Result<(), Error> {
                 message: bytes.try_into()?,
             };
 
-            // Checking module reference of already deployed staking_bank contract.
             let context = ContractContext::new_from_payload(
                 deployer.key.address,
                 DEFAULT_INVOKE_ENERGY,
@@ -383,11 +395,141 @@ async fn main() -> Result<(), Error> {
             }
         }
         // Upgrading the umbrella_feeds contract
-        Command::UpgradeUmbrellaFeeds { url, key_file } => {
+        Command::UpgradeUmbrellaFeeds {
+            url,
+            key_file,
+            registry_contract,
+            new_umbrella_feeds,
+        } => {
             // Setting up connection
             let concordium_client = v2::Client::new(url).await?;
 
-            let _deployer = Deployer::new(concordium_client, &key_file)?;
+            let mut deployer = Deployer::new(concordium_client, &key_file)?;
+
+            // Checking that module reference is different to the mbrella_feeds module reference registered in the registry
+
+            // Getting the module reference from the new umbrella feeds contract
+            let new_wasm_module = get_wasm_module(&new_umbrella_feeds)?;
+
+            let new_module_reference = new_wasm_module.get_module_ref();
+
+            println!("{}", new_module_reference);
+
+            // Getting the module reference from the umbrella feeds contract already registered in the registry
+
+            let bytes = contracts_common::to_bytes(&"UmbrellaFeeds");
+
+            let payload = transactions::UpdateContractPayload {
+                amount: Amount::from_ccd(0),
+                address: registry_contract,
+                receive_name: OwnedReceiveName::new_unchecked("registry.getAddress".to_string()),
+                message: bytes.try_into()?,
+            };
+
+            let context = ContractContext::new_from_payload(
+                deployer.key.address,
+                DEFAULT_INVOKE_ENERGY,
+                payload,
+            );
+
+            let result = deployer
+                .client
+                .invoke_instance(&BlockIdentifier::LastFinal, &context)
+                .await?;
+
+            let old_umbrella_feeds_contract: ContractAddress = match result.response {
+                Success {
+                    return_value,
+                    events: _,
+                    used_energy: _,
+                } => parse_return_value::<ContractAddress>(return_value.unwrap().into()).unwrap(),
+                Failure {
+                    return_value: _,
+                    reason: _cce,
+                    used_energy: _,
+                } => bail!("Failed querying umbrella feeds address from registry"),
+            };
+
+            let info = deployer
+                .client
+                .get_instance_info(old_umbrella_feeds_contract, &BlockIdentifier::LastFinal)
+                .await
+                .unwrap();
+
+            let old_module_reference = info.response.source_module();
+
+            if old_module_reference == new_module_reference {
+                bail!("The new umbrella feeds module reference is identical to the old umbrella feeds module reference as it is registered in the registry contract.")
+            } else {
+                // Deploying new umbrella feeds wasm modules
+
+                let new_umbrella_feeds_module_reference =
+                    deploy_module(&mut deployer.clone(), &new_umbrella_feeds).await?;
+
+                // Getting staking bank address
+
+                let bytes = contracts_common::to_bytes(&"StakingBank");
+
+                let payload = transactions::UpdateContractPayload {
+                    amount: Amount::from_ccd(0),
+                    address: registry_contract,
+                    receive_name: OwnedReceiveName::new_unchecked(
+                        "registry.getAddress".to_string(),
+                    ),
+                    message: bytes.try_into()?,
+                };
+
+                let context = ContractContext::new_from_payload(
+                    deployer.key.address,
+                    DEFAULT_INVOKE_ENERGY,
+                    payload,
+                );
+
+                let result = deployer
+                    .client
+                    .invoke_instance(&BlockIdentifier::LastFinal, &context)
+                    .await?;
+
+                let staking_bank_address: ContractAddress = match result.response {
+                    Success {
+                        return_value,
+                        events: _,
+                        used_energy: _,
+                    } => {
+                        parse_return_value::<ContractAddress>(return_value.unwrap().into()).unwrap()
+                    }
+                    Failure {
+                        return_value: _,
+                        reason: _cce,
+                        used_energy: _,
+                    } => bail!("Failed querying staking bank address from registry"),
+                };
+
+                // Initializing umbrealla feeds contract
+
+                print!("\nInitializing new umbrella feeds contract....");
+
+                use umbrella_feeds::InitParamsUmbrellaFeeds;
+
+                let input_parameter = InitParamsUmbrellaFeeds {
+                    registry: registry_contract,
+                    required_signatures: 5,
+                    staking_bank: staking_bank_address,
+                    decimals: 18,
+                };
+
+                let payload = InitContractPayload {
+                    init_name: OwnedContractName::new("init_umbrella_feeds".into())?,
+                    amount: Amount::from_micro_ccd(0),
+                    mod_ref: new_umbrella_feeds_module_reference,
+                    param: OwnedParameter::from_serial(&input_parameter)?,
+                };
+
+                let _init_result: InitResult = deployer
+                    .init_contract(payload, None, None)
+                    .await
+                    .context("Failed to initialize the umbrella feeds contract.")?;
+            }
         }
     };
     Ok(())

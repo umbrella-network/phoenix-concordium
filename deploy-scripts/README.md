@@ -88,7 +88,7 @@ cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.co
 To upgrade the umbrella feeds contract:
 
 ```
-cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
+cargo run upgrade_umbrella_feeds_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
 ```
 
 The output should be:
