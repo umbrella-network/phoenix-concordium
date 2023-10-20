@@ -34,7 +34,6 @@ fn get_wasm_module(file: &Path) -> Result<WasmModule, Error> {
 }
 
 /// Try to parse the return value into a type that implements [`Deserial`].
-///
 /// Ensures that all bytes of the return value are read.
 pub fn parse_return_value<T: Deserial>(return_value: ReturnValue) -> ParseResult<T> {
     use contracts_common::{Cursor, Get, ParseError};
@@ -48,7 +47,8 @@ pub fn parse_return_value<T: Deserial>(return_value: ReturnValue) -> ParseResult
     Ok(res)
 }
 
-/// Deploys a wasm module given the path to the file.
+/// Deploys a wasm module given the path to the file. Returns the module reference of the wasm module.
+/// If the wasm module is already deployed on the chain, this function returns the module reference as well but without sending a deployment transaction.
 async fn deploy_module(
     deployer: &mut Deployer,
     wasm_module_path: &Path,
@@ -71,7 +71,7 @@ async fn deploy_module(
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Deployment and update scripts.")]
 enum Command {
-    #[structopt(name = "deploy", about = "Deploy new smart contract protocol.")]
+    #[structopt(name = "deploy", about = "Deploy and set up the umbrella oracle protocol.")]
     DeployState {
         #[structopt(
             long = "node",
@@ -85,6 +85,16 @@ enum Command {
                     (e.g. ./myPath/3PXwJYYPf6fyVb4GJquxSZU8puxrHfzc4XogdMVot8MUQK53tW.export)."
         )]
         key_file: PathBuf,
+        #[structopt(
+            long = "required_signatures",
+            help = "Minimal number of signatures required for accepting price submission in the umbrella feeds contract."
+        )]
+        required_signatures: u16,
+        #[structopt(
+            long = "decimals",
+            help = "Decimals for prices stored in the umbrella feeds contract."
+        )]
+        decimals: u8,
     },
     #[structopt(
         name = "register",
@@ -105,14 +115,14 @@ enum Command {
         key_file: PathBuf,
         #[structopt(
             long = "registry",
-            help = "Path to the file containing the Concordium account keys exported from the wallet \
-                    (e.g. ./myPath/3PXwJYYPf6fyVb4GJquxSZU8puxrHfzc4XogdMVot8MUQK53tW.export)."
+            help = "Contract address of the registry (e.g. --registry \"<7074,0>\")."
         )]
         registry_contract: ContractAddress,
         #[structopt(
             long = "contract",
-            help = "Path to the file containing the Concordium account keys exported from the wallet \
-                    (e.g. ./myPath/3PXwJYYPf6fyVb4GJquxSZU8puxrHfzc4XogdMVot8MUQK53tW.export)."
+            help = "Contract address to be registered in the registry. Use this flag several times if you \
+            have several smart contracts to be registered (e.g. --contract \
+                \"<7075,0>\" --contract \"<7076,0>\")."
         )]
         contract: Vec<ContractAddress>,
     },
@@ -135,15 +145,12 @@ enum Command {
         key_file: PathBuf,
         #[structopt(
             long = "registry",
-            help = "Path to the file containing the Concordium account keys exported from the wallet \
-                    (e.g. ./myPath/3PXwJYYPf6fyVb4GJquxSZU8puxrHfzc4XogdMVot8MUQK53tW.export)."
+            help = "Contract address of the registry (e.g. --registry \"<7074,0>\")."
         )]
         registry_contract: ContractAddress,
         #[structopt(
             long = "new_staking_bank",
-            help = "Path of the Concordium smart contract module. Use this flag several times if you \
-                    have several smart contract modules to be deployed (e.g. --module \
-                    ./myPath/default.wasm.v1 --module ./default2.wasm.v1)."
+            help = "Path to the new staking_bank module (e.g. --new_staking_bank ./new_staking_bank.wasm.v1)."
         )]
         new_staking_bank: PathBuf,
     },
@@ -166,15 +173,12 @@ enum Command {
         key_file: PathBuf,
         #[structopt(
             long = "registry",
-            help = "Path to the file containing the Concordium account keys exported from the wallet \
-                    (e.g. ./myPath/3PXwJYYPf6fyVb4GJquxSZU8puxrHfzc4XogdMVot8MUQK53tW.export)."
+            help = "Contract address of the registry (e.g. --registry \"<7074,0>\")."
         )]
         registry_contract: ContractAddress,
         #[structopt(
             long = "new_umbrella_feeds",
-            help = "Path of the Concordium smart contract module. Use this flag several times if you \
-                    have several smart contract modules to be deployed (e.g. --module \
-                    ./myPath/default.wasm.v1 --module ./default2.wasm.v1)."
+            help = "Path to the new umbrella_feeds module (e.g. --new_umbrella_feeds ./new_umbrella_feeds.wasm.v1)."
         )]
         new_umbrella_feeds: PathBuf,
     },
@@ -185,7 +189,6 @@ async fn main() -> Result<(), Error> {
     let cmd = {
         let app = Command::clap()
             .setting(AppSettings::ArgRequiredElseHelp)
-            .global_setting(AppSettings::TrailingVarArg)
             .global_setting(AppSettings::ColoredHelp);
         let matches = app.get_matches();
 
@@ -193,8 +196,13 @@ async fn main() -> Result<(), Error> {
     };
 
     match cmd {
-        // Deploying a fresh new protocol
-        Command::DeployState { url, key_file } => {
+        // Deploying a new umbrella oracle protocol
+        Command::DeployState {
+            url,
+            key_file,
+            required_signatures,
+            decimals,
+        } => {
             // Setting up connection
             let concordium_client = v2::Client::new(url).await?;
 
@@ -202,16 +210,21 @@ async fn main() -> Result<(), Error> {
 
             // Deploying registry, umbrella_feeds, and staking_bank wasm modules
 
+            print!("\nDeploying registry module....");
             let registry_module_reference = deploy_module(
                 &mut deployer.clone(),
                 &PathBuf::from("../registry/registry.wasm.v1"),
             )
             .await?;
+
+            print!("\nDeploying staking_bank module....");
             let staking_bank_module_reference = deploy_module(
                 &mut deployer.clone(),
                 &PathBuf::from("../staking-bank/staking_bank.wasm.v1"),
             )
             .await?;
+
+            print!("\nDeploying umbrella_feeds module....");
             let umbrella_feeds_module_reference = deploy_module(
                 &mut deployer.clone(),
                 &PathBuf::from("../umbrella-feeds/umbrella_feeds.wasm.v1"),
@@ -258,9 +271,9 @@ async fn main() -> Result<(), Error> {
 
             let input_parameter = InitParamsUmbrellaFeeds {
                 registry: init_result_registry_contract.contract_address,
-                required_signatures: 5,
+                required_signatures,
                 staking_bank: init_result_staking_bank.contract_address,
-                decimals: 18,
+                decimals,
             };
 
             let payload = InitContractPayload {

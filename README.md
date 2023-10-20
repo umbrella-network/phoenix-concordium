@@ -36,7 +36,13 @@ To test the `StakingBank` contract use the following command:
  
 You can execute from the root of this folder the following commands via the `makeFile` to simplify development and testing:
 
-```make build-all``` to build all contracts.
+```make build-all-production``` to build all contracts with production setting.
+
+```make build-all-development``` to build all contracts with development setting.
+
+```make build-all-sandbox``` to build all contracts with sandbox setting.
+
+```make build-all``` to build all contracts (the staking bank is built three times with production, development, and sandbox setting).
 
 ```make test-all``` to run all tests.
 

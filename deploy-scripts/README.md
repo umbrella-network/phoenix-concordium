@@ -11,7 +11,7 @@ This project contains scripts:
 
 Build and run the scripts from the deploy-scripts folder using
 ```
-cargo run <subcommand> <flags>
+cargo run <subcommand> <options>
 ```
 
 To explore available subcommands, use the `help` flag:
@@ -19,32 +19,40 @@ To explore available subcommands, use the `help` flag:
 cargo run -- --help
 ```
 
-To explore available flags for the e.g. subcommand `deploy`, use the `help` flag:
+To explore available options for the e.g. subcommand `deploy`, use the `help` flag:
 ```
 cargo run deploy --help
 ```
 
 # Examples
 
-- To deploy a fresh new protocol:
+## To deploy a fresh new protocol:
 
+Compile your contracts for the respective environment by executing one of the commands in the root folder of this project:
 ```
-cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export
+make build-all-production
+make build-all-development
+make build-all-sandbox
 ```
 
-- To register contracts in the `registry` contract:
+Then, execute the corresponding deployment script in this folder:
+```
+cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --required_signatures 3 --decimals 8
+```
+
+## To register contracts in the `registry` contract:
 
 ```
 cargo run register --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --contract "<7076,0>" --contract "<7075,0>" 
 ```
 
-- To upgrade the `staking_bank` contract:
+## To upgrade the `staking_bank` contract:
 
 ```
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 ```
 
-- To upgrade the `umbrella_feeds` contract:
+## To upgrade the `umbrella_feeds` contract:
 
 ```
 cargo run upgrade_umbrella_feeds_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
