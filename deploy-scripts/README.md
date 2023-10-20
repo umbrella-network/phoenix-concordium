@@ -1,97 +1,60 @@
-# Deploy, Initialize, and Update Script Template
+# Scripts
 
-This project has boilerplate code to write deployment, initialization, and update scripts for Concordium smart contract protocols. 
+This project contains scripts:
 
-# Purpose
+- to deploy the whole protocol (deploying the `registry`, `staking_bank`, and `umbrella_feeds` contracts and setting up the protocol)
+- to register contracts in the `registry` (registering a list of contracts in the `registry` contract using the `importContracts` entry point)
+- to upgrade the `staking_bank` contract (checking that the new `staking_bank` module reference differs from the old one. If yes, deploying and initializing a new `staking_bank` and registering it in the `registry` contract using the `importContracts` entry point)
+- to upgrade the `umbrella_feeds` contract (checking that the new `umbrella_feeds` module reference differs from the old one. If yes, deploying the new `umbrella_feeds` module and natively upgrade the old umbrella feeds contract with it via the `registry` contract using the `atomicUpdate` entry point)
 
-Automatic scripts are useful to speed up the development and testing of your protocol on the chain. 
-In addition, scripts help to set up identical protocols on different chains easily. E.g. you can deploy your protocol to testnet or mainnet by just specifying a corresponding node connection and account keys for the respective network when running the script.
+# Running The Scripts
 
-# Running The Script
-
-Build and run the script from the deploy-scripts folder using
+Build and run the scripts from the deploy-scripts folder using
 ```
-cargo run
-```
-
-The following options are necessary when running the script
-
-```
-    --node <CONCORDIUM_NODE_URL>
-        V2 API of the concordium node. [default: http://node.testnet.concordium.com:20000]
-    --account <CONCORDIUM_ACCOUNT_PATH>
-        Path to the file containing the Concordium account keys exported from the wallet (e.g. ./myPath/4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export).
-    --module <MODULE_PATH>
-        Path of the Concordium smart contract module. Use this flag several times \
-        if you have several smart contract modules to be deployed (e.g. --module ./myPath/default.wasm.v1 --module ./default2.wasm.v1).
+cargo run <subcommand> <flags>
 ```
 
-The `account` parameter should be a Concordium wallet account either exported from the
-Browser wallet or the mobile wallets, or in the format emitted by the
-genesis tool.
-
-Example:
+To explore available subcommands, use the `help` flag:
 ```
-cargo run -- --node http://node.testnet.concordium.com:20000 --account ./myPath/4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --module ./myPath/default.wasm.v1 --module ./default2.wasm.v1
+cargo run -- --help
 ```
 
-# Functionalities
-
-The boilerplate code has support for the following functionalities:
-
-Read functions:
-- `estimate_energy`: To estimate the energy needed to execute one of the three write functions below.
-- `module_exists`: To check if a module has already been deployed on the chain.
-- `get_nonce`: To get the next nonce of the provided wallet account.
-
-Write functions:
-- `deploy_wasm_module`: To deploy a new smart contract module on the chain.
-- `init_contract`: To initialize a smart contract instance on the chain.
-- `update_contract`: To update a smart contract instance on the chain.
-
-Helper functions to check the outcome of the transactions:
-- `check_outcome_of_deploy_transaction`: To check the outcome of a deploy module transaction.
-- `check_outcome_of_initialization_transaction`: To check the outcome of a smart contract instance initialization transaction.
-- `check_outcome_of_update_transaction`: To check the outcome of an update smart contract instance transaction.
-
-The `main.rs` file has a section (marked with `// Write your own deployment/initialization script below. An example is given here.`) that you should replace with your custom logic. You can write your script using `deploy`, `initialize`, and contract `update` transactions.
-
-# Running the Example
-
-The `main.rs` file has a section (marked with `// Write your own deployment/initialization script below. An example is given here.`) that provides an example that you can run.
-
-Navigate into the root folder and compile the `default` smart contract with the command:
+To explore available flags for the e.g. subcommand `deploy`, use the `help` flag:
 ```
-cargo concordium build --out ./deploy-scripts/default.wasm.v1
+cargo run deploy --help
 ```
 
-Navigate into the deploy-scripts folder and run the example with the `default` smart contract (replace your wallet account in the below command):
+# Examples
 
-To deploy a fresh new protocol:
+- To deploy a fresh new protocol:
 
 ```
 cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export
 ```
 
-To register contracts in the regsitry:
+- To register contracts in the `registry` contract:
 
 ```
 cargo run register --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --contract "<7076,0>" --contract "<7075,0>" 
 ```
 
-To upgrade the staking bank contract:
+- To upgrade the `staking_bank` contract:
 
 ```
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 ```
 
-To upgrade the umbrella feeds contract:
+- To upgrade the `umbrella_feeds` contract:
 
 ```
 cargo run upgrade_umbrella_feeds_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
 ```
 
-The output should be:
+Note: The `account` parameter should be a Concordium wallet account either exported from the
+browser wallet or the mobile wallets, or in the format emitted by the
+genesis tool.
+
+The outputs of the above commands should be similar to:
 
 ```
 Deploying module....
