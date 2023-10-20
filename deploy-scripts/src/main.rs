@@ -3,11 +3,12 @@ use anyhow::{bail, Context, Error};
 use concordium_rust_sdk::{
     common::types::Amount,
     smart_contracts::{
-        common::{self as contracts_common},
-        common::{Deserial, ParseResult},
+        common::{self as contracts_common, Deserial, ParseResult},
         engine::v1::ReturnValue,
-        types::InvokeContractResult::{Failure, Success},
-        types::{OwnedContractName, OwnedParameter, OwnedReceiveName},
+        types::{
+            InvokeContractResult::{Failure, Success},
+            OwnedContractName, OwnedParameter, OwnedReceiveName,
+        },
     },
     types::{
         smart_contracts::{ContractContext, ModuleReference, WasmModule, DEFAULT_INVOKE_ENERGY},
@@ -24,6 +25,7 @@ use std::{
     path::{Path, PathBuf},
 };
 use structopt::{clap::AppSettings, StructOpt};
+use umbrella_feeds::InitParamsUmbrellaFeeds;
 
 /// Reads the wasm module from a given file path.
 fn get_wasm_module(file: &Path) -> Result<WasmModule, Error> {
@@ -71,7 +73,10 @@ async fn deploy_module(
 #[derive(Debug, StructOpt)]
 #[structopt(about = "Deployment and update scripts.")]
 enum Command {
-    #[structopt(name = "deploy", about = "Deploy and set up the umbrella oracle protocol.")]
+    #[structopt(
+        name = "deploy",
+        about = "Deploy and set up the umbrella oracle protocol."
+    )]
     DeployState {
         #[structopt(
             long = "node",
@@ -203,7 +208,7 @@ async fn main() -> Result<(), Error> {
             required_signatures,
             decimals,
         } => {
-            // Setting up connection
+            // Setting up the connection
             let concordium_client = v2::Client::new(url).await?;
 
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
@@ -267,8 +272,6 @@ async fn main() -> Result<(), Error> {
 
             print!("\nInitializing umbrella_feeds contract....");
 
-            use umbrella_feeds::InitParamsUmbrellaFeeds;
-
             let input_parameter = InitParamsUmbrellaFeeds {
                 registry: init_result_registry_contract.contract_address,
                 required_signatures,
@@ -288,19 +291,19 @@ async fn main() -> Result<(), Error> {
                 .await
                 .context("Failed to initialize the umbrella feeds contract.")?;
         }
-        // Registering contracts in the registry
+        // Registering the contracts in the registry
         Command::Register {
             url,
             key_file,
             registry_contract,
             contract,
         } => {
-            // Setting up connection
+            // Setting up the connection
             let concordium_client = v2::Client::new(url).await?;
 
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
-            // Registering contracts
+            // Registering the contracts
 
             let bytes = contracts_common::to_bytes(&ImportContractsParam { entries: contract });
 
@@ -325,21 +328,20 @@ async fn main() -> Result<(), Error> {
             registry_contract,
             new_staking_bank,
         } => {
-            // Setting up connection
+            // Setting up the connection
             let concordium_client = v2::Client::new(url).await?;
 
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
-            // Checking that module reference is different to the staking_bank module reference registered in the registry
+            // Checking that the module reference is different to the staking_bank module reference registered in the registry
 
-            // Getting the module reference from the new staking bank
+            // Step 1: Getting the module reference from the new staking bank
+
             let new_wasm_module = get_wasm_module(&new_staking_bank)?;
 
             let new_module_reference = new_wasm_module.get_module_ref();
 
-            println!("{}", new_module_reference);
-
-            // Getting the module reference from the staking bank already registered in the registry
+            // Step 2: Getting the module reference from the staking bank already registered in the registry
 
             let bytes = contracts_common::to_bytes(&"StakingBank");
 
@@ -359,31 +361,39 @@ async fn main() -> Result<(), Error> {
             let result = deployer
                 .client
                 .invoke_instance(&BlockIdentifier::LastFinal, &context)
-                .await?;
+                .await
+                .context("Failed invoking instance")?;
 
             let old_staking_contract: ContractAddress = match result.response {
                 Success {
                     return_value,
                     events: _,
                     used_energy: _,
-                } => parse_return_value::<ContractAddress>(return_value.unwrap().into()).unwrap(),
+                } => {
+                    if let Some(return_value) = return_value {
+                        parse_return_value::<ContractAddress>(return_value.into())
+                            .context("Failed parsing contractAddress")?
+                    } else {
+                        bail!("Failed no return value");
+                    }
+                }
                 Failure {
                     return_value: _,
-                    reason: _cce,
+                    reason,
                     used_energy: _,
-                } => bail!("Failed querying staking bank address from registry"),
+                } => bail!("Failed querying staking bank address from registry: {reason:?}"),
             };
 
             let info = deployer
                 .client
                 .get_instance_info(old_staking_contract, &BlockIdentifier::LastFinal)
                 .await
-                .unwrap();
+                .context("Failed querying instance info")?;
 
             let old_module_reference = info.response.source_module();
 
             if old_module_reference == new_module_reference {
-                bail!("The new staking contract module reference is identical to the old staking contract module reference as it is registered in the registry contract.")
+                bail!("Failed the new staking bank module reference has to be different from the old staking bank module reference.")
             } else {
                 // Deploying new staking_bank wasm modules
 
@@ -406,7 +416,7 @@ async fn main() -> Result<(), Error> {
                     .await
                     .context("Failed to initialize the new staking bank contract.")?;
 
-                // Updating staking bank address in regsitry contract
+                // Updating staking bank address in registry contract
 
                 print!("\nUpdating staking bank address in resgistry contract....");
 
@@ -436,21 +446,20 @@ async fn main() -> Result<(), Error> {
             registry_contract,
             new_umbrella_feeds,
         } => {
-            // Setting up connection
+            // Setting up the connection
             let concordium_client = v2::Client::new(url).await?;
 
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
-            // Checking that module reference is different to the umbrella_feeds module reference registered in the registry
+            // Checking that the module reference is different from the umbrella_feeds module reference registered in the registry
 
-            // Getting the module reference from the new umbrella feeds contract
+            // Step 1: Getting the module reference from the new umbrella feeds contract
+
             let new_wasm_module = get_wasm_module(&new_umbrella_feeds)?;
 
             let new_module_reference = new_wasm_module.get_module_ref();
 
-            println!("{}", new_module_reference);
-
-            // Getting the module reference from the umbrella feeds contract already registered in the registry
+            // Step 2: Getting the module reference from the umbrella feeds contract already registered in the registry
 
             let bytes = contracts_common::to_bytes(&"UmbrellaFeeds");
 
@@ -470,40 +479,48 @@ async fn main() -> Result<(), Error> {
             let result = deployer
                 .client
                 .invoke_instance(&BlockIdentifier::LastFinal, &context)
-                .await?;
+                .await
+                .context("Failed invoking instance")?;
 
             let old_umbrella_feeds_contract: ContractAddress = match result.response {
                 Success {
                     return_value,
                     events: _,
                     used_energy: _,
-                } => parse_return_value::<ContractAddress>(return_value.unwrap().into()).unwrap(),
+                } => {
+                    if let Some(return_value) = return_value {
+                        parse_return_value::<ContractAddress>(return_value.into())
+                            .context("Failed parsing contractAddress")?
+                    } else {
+                        bail!("Failed no return value");
+                    }
+                }
                 Failure {
                     return_value: _,
-                    reason: _cce,
+                    reason,
                     used_energy: _,
-                } => bail!("Failed querying umbrella feeds address from registry"),
+                } => bail!("Failed querying umbrella feeds address from registry: {reason:?}"),
             };
 
             let info = deployer
                 .client
                 .get_instance_info(old_umbrella_feeds_contract, &BlockIdentifier::LastFinal)
                 .await
-                .unwrap();
+                .context("Failed querying instance info")?;
 
             let old_module_reference = info.response.source_module();
 
             if old_module_reference == new_module_reference {
-                bail!("The new umbrella feeds module reference is identical to the old umbrella feeds module reference as it is registered in the registry contract.")
+                bail!("Failed the new umbrella feeds module reference has to be different from the old umbrella feeds module reference.")
             } else {
                 // Deploying new umbrella feeds wasm modules
 
                 let new_umbrella_feeds_module_reference =
                     deploy_module(&mut deployer.clone(), &new_umbrella_feeds).await?;
 
-                // Natively upgrade umbrella feeds contract via regsitry
+                // Natively upgrade umbrella feeds contract via registry
 
-                print!("\nNatively upgrade umbrella feeds contract via regsitry....");
+                print!("\nNatively upgrade umbrella feeds contract via registry....");
 
                 let bytes = contracts_common::to_bytes(&AtomicUpdateParam {
                     module: new_umbrella_feeds_module_reference,

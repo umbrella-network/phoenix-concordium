@@ -26,7 +26,7 @@ cargo run deploy --help
 
 # Examples
 
-## To deploy a fresh new protocol:
+## To deploy a new umbrella oracle protocol:
 
 Compile your contracts for the respective environment by executing one of the commands in the root folder of this project:
 ```
@@ -35,12 +35,14 @@ make build-all-development
 make build-all-sandbox
 ```
 
-Then, execute the corresponding deployment script in this folder:
+Execute the deployment script in this folder to set up the protocol with the above-compiled contracts (an example command is shown below):
 ```
 cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --required_signatures 3 --decimals 8
 ```
 
 ## To register contracts in the `registry` contract:
+
+Execute the register script in this folder (an example command is shown below):
 
 ```
 cargo run register --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --contract "<7076,0>" --contract "<7075,0>" 
@@ -48,11 +50,19 @@ cargo run register --node http://node.testnet.concordium.com:20000 --account ./4
 
 ## To upgrade the `staking_bank` contract:
 
+Compile a new `staking_bank` contract.
+
+Execute the upgrade script in this folder (an example command is shown below):
+
 ```
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 ```
 
 ## To upgrade the `umbrella_feeds` contract:
+
+Compile a new `umbrella_feeds` contract.
+
+Execute the upgrade script in this folder (an example command is shown below):
 
 ```
 cargo run upgrade_umbrella_feeds_contract --node http://node.testnet.concordium.com:20000 --account ./4SizPU2ipqQQza9Xa6fUkQBCDjyd1vTNUNDGbBeiRGpaJQc6qX.export --registry "<7074,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
