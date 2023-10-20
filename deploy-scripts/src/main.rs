@@ -18,7 +18,7 @@ use concordium_rust_sdk::{
     v2::{self, BlockIdentifier},
 };
 use deployer::{DeployResult, Deployer, InitResult};
-use registry::ImportContractsParam;
+use registry::{AtomicUpdateParam, ImportContractsParam};
 use std::{
     io::Cursor,
     path::{Path, PathBuf},
@@ -275,7 +275,7 @@ async fn main() -> Result<(), Error> {
                 .await
                 .context("Failed to initialize the umbrella feeds contract.")?;
         }
-        // Upgrading the staking_bank contract
+        // Registering contracts in the registry
         Command::Register {
             url,
             key_file,
@@ -388,10 +388,32 @@ async fn main() -> Result<(), Error> {
                     param: OwnedParameter::empty(),
                 };
 
-                let _init_result_staking_bank: InitResult = deployer
+                let init_result_staking_bank: InitResult = deployer
                     .init_contract(payload, None, None)
                     .await
                     .context("Failed to initialize the new staking bank contract.")?;
+
+                // Updating staking bank address in regsitry contract
+
+                print!("\nUpdating staking bank address in resgistry contract....");
+
+                let bytes = contracts_common::to_bytes(&ImportContractsParam {
+                    entries: vec![init_result_staking_bank.contract_address],
+                });
+
+                let update_payload = transactions::UpdateContractPayload {
+                    amount: Amount::from_ccd(0),
+                    address: registry_contract,
+                    receive_name: OwnedReceiveName::new_unchecked(
+                        "registry.importContracts".to_string(),
+                    ),
+                    message: bytes.try_into()?,
+                };
+
+                let _update_contract = deployer
+                    .update_contract(update_payload, None, None)
+                    .await
+                    .context("Failed to register the contract.")?;
             }
         }
         // Upgrading the umbrella_feeds contract
@@ -406,7 +428,7 @@ async fn main() -> Result<(), Error> {
 
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
-            // Checking that module reference is different to the mbrella_feeds module reference registered in the registry
+            // Checking that module reference is different to the umbrella_feeds module reference registered in the registry
 
             // Getting the module reference from the new umbrella feeds contract
             let new_wasm_module = get_wasm_module(&new_umbrella_feeds)?;
@@ -466,69 +488,30 @@ async fn main() -> Result<(), Error> {
                 let new_umbrella_feeds_module_reference =
                     deploy_module(&mut deployer.clone(), &new_umbrella_feeds).await?;
 
-                // Getting staking bank address
+                // Natively upgrade umbrella feeds contract via regsitry
 
-                let bytes = contracts_common::to_bytes(&"StakingBank");
+                print!("\nNatively upgrade umbrella feeds contract via regsitry....");
 
-                let payload = transactions::UpdateContractPayload {
+                let bytes = contracts_common::to_bytes(&AtomicUpdateParam {
+                    module: new_umbrella_feeds_module_reference,
+                    migrate: None,
+                    contract_address: old_umbrella_feeds_contract,
+                });
+
+                let update_payload = transactions::UpdateContractPayload {
                     amount: Amount::from_ccd(0),
                     address: registry_contract,
                     receive_name: OwnedReceiveName::new_unchecked(
-                        "registry.getAddress".to_string(),
+                        "registry.atomicUpdate".to_string(),
                     ),
                     message: bytes.try_into()?,
                 };
 
-                let context = ContractContext::new_from_payload(
-                    deployer.key.address,
-                    DEFAULT_INVOKE_ENERGY,
-                    payload,
-                );
-
-                let result = deployer
-                    .client
-                    .invoke_instance(&BlockIdentifier::LastFinal, &context)
-                    .await?;
-
-                let staking_bank_address: ContractAddress = match result.response {
-                    Success {
-                        return_value,
-                        events: _,
-                        used_energy: _,
-                    } => {
-                        parse_return_value::<ContractAddress>(return_value.unwrap().into()).unwrap()
-                    }
-                    Failure {
-                        return_value: _,
-                        reason: _cce,
-                        used_energy: _,
-                    } => bail!("Failed querying staking bank address from registry"),
-                };
-
-                // Initializing umbrealla feeds contract
-
-                print!("\nInitializing new umbrella feeds contract....");
-
-                use umbrella_feeds::InitParamsUmbrellaFeeds;
-
-                let input_parameter = InitParamsUmbrellaFeeds {
-                    registry: registry_contract,
-                    required_signatures: 5,
-                    staking_bank: staking_bank_address,
-                    decimals: 18,
-                };
-
-                let payload = InitContractPayload {
-                    init_name: OwnedContractName::new("init_umbrella_feeds".into())?,
-                    amount: Amount::from_micro_ccd(0),
-                    mod_ref: new_umbrella_feeds_module_reference,
-                    param: OwnedParameter::from_serial(&input_parameter)?,
-                };
-
-                let _init_result: InitResult = deployer
-                    .init_contract(payload, None, None)
-                    .await
-                    .context("Failed to initialize the umbrella feeds contract.")?;
+                let _update_contract =
+                    deployer
+                        .update_contract(update_payload, None, None)
+                        .await
+                        .context("Failed to natively upgrade the umbrella feeds contract.")?;
             }
         }
     };
