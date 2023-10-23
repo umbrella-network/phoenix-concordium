@@ -42,7 +42,7 @@ You can execute from the root of this folder the following commands via the `mak
 
 ```make build-all-sandbox``` to build all contracts with sandbox setting.
 
-```make build-all``` to build all contracts (the staking bank is built three times with production, development, and sandbox setting).
+```make build-all``` to build all contracts (the staking bank is built three times with production, sandbox, and development setting).
 
 ```make test-all``` to run all tests.
 
