@@ -1,5 +1,22 @@
-build-all:
-	cd registry; cargo concordium build -e --out registry.wasm.v1; cd ../staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features development; cargo concordium build -e -- --features sandbox; cargo concordium build -e -- --features production; cd ../umbrella-feeds; cargo concordium build -e --out umbrella_feeds.wasm.v1; cd ../dummy-contract; cargo concordium build -e --out dummy-contract.wasm.v1;
+staking-bank-production: 
+	cd ./staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features production;
+
+staking-bank-development: 
+	cd ./staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features development;
+
+staking-bank-sandbox: 
+	cd ./staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features sandbox;
+
+build-contracts:
+	cd registry; cargo concordium build -e --out registry.wasm.v1; cd ../umbrella-feeds; cargo concordium build -e --out umbrella_feeds.wasm.v1; cd ../dummy-contract; cargo concordium build -e --out dummy-contract.wasm.v1;
+
+build-all-production: build-contracts staking-bank-production
+
+build-all-development: build-contracts staking-bank-development
+
+build-all-sandbox: build-contracts staking-bank-sandbox
+
+build-all: build-contracts staking-bank-production staking-bank-sandbox staking-bank-development
 
 test-all:
 	cd registry; cargo concordium test; cd ../staking-bank; cargo concordium test -- --features development; cd ../umbrella-feeds; cargo concordium test;
