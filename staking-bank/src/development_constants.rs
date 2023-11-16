@@ -60,7 +60,7 @@ pub(crate) fn validators<S: HasStateApi>(
 #[receive(
     contract = "staking_bank",
     name = "getPublicKeys",
-    return_value = "[PublicKeyEd25519;22]"
+    return_value = "[PublicKeyEd25519;2]"
 )]
 pub(crate) fn get_public_keys<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
