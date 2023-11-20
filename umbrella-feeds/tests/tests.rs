@@ -392,6 +392,7 @@ fn test_update_price_feed() {
     ) = setup_chain_and_contract();
 
     let key_1: String = String::from("Contract1");
+    let non_existing_key: String = String::from("blabla");
 
     let price_data = PriceData {
         data: 7,
@@ -517,6 +518,50 @@ fn test_update_price_feed() {
         from_bytes(&invoke.return_value).expect("Should return a valid result");
 
     assert_eq!(stored_price_data, price_data);
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.getManyPriceDataRaw".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&vec![key_1.clone()])
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query prices");
+
+    let stored_price_data: Vec<Option<PriceData>> =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(stored_price_data, [Some(price_data)]);
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.getManyPriceDataRaw".to_string(),
+                ),
+                message: OwnedParameter::from_serial(&vec![non_existing_key])
+                    .expect("Should be a valid inut parameter"),
+            },
+        )
+        .expect("Should be able to query prices");
+
+    let no_price_data: Vec<Option<PriceData>> =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(no_price_data, [None]);
 
     let invoke = chain
         .contract_invoke(
