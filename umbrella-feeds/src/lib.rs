@@ -569,6 +569,19 @@ fn decimals<S: HasStateApi>(
     Ok(host.state().decimals)
 }
 
+/// View function that returns the required signatures.
+#[receive(
+    contract = "umbrella_feeds",
+    name = "requiredSignatures",
+    return_value = "u16"
+)]
+fn required_signatures<S: HasStateApi>(
+    _ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<u16> {
+    Ok(host.state().required_signatures)
+}
+
 /// Hook function to enable `atomicUpdate` via the registry contract.
 #[receive(contract = "umbrella_feeds", name = "unregister")]
 fn unregister<S: HasStateApi>(

@@ -818,6 +818,38 @@ fn test_get_name() {
 }
 
 #[test]
+fn test_get_required_signatures() {
+    let (
+        chain,
+        initialization_umbrella_feeds,
+        _initialization_registry,
+        _initialization_staking_bank,
+    ) = setup_chain_and_contract();
+
+    // Checking requiredSignatures.
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.requiredSignatures".to_string(),
+                ),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Should be able to query required signatures");
+
+    let value: u16 = from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(value, 2u16);
+}
+
+#[test]
 fn test_upgrade_without_migration_function() {
     let (
         mut chain,
