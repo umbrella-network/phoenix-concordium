@@ -456,6 +456,31 @@ fn get_many_price_data<S: HasStateApi>(
     Ok(price_data)
 }
 
+/// View function that returns many price data. In contrast to the `getManyPriceData`,
+/// this function returns `None` instead of an Error when a price feed
+/// does not exist. This function can be used if reverting the transaction
+/// on non-existing price-feed is not desired.
+#[receive(
+    contract = "umbrella_feeds",
+    name = "getManyPriceDataRaw",
+    parameter = "Vec<String>",
+    return_value = "Vec<Option<PriceData>>"
+)]
+fn get_many_price_data_raw<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &impl HasHost<State<S>, StateApiType = S>,
+) -> ReceiveResult<Vec<Option<PriceData>>> {
+    let keys: Vec<String> = ctx.parameter_cursor().get()?;
+
+    let mut price_data = Vec::with_capacity(keys.len());
+
+    for key in keys {
+        price_data.push(host.state().prices.get(&key).map(|price_data| *price_data));
+    }
+
+    Ok(price_data)
+}
+
 /// View function that returns the price data of one price feed. It throws if the price feed does not exist.
 #[receive(
     contract = "umbrella_feeds",
