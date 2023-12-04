@@ -5,7 +5,8 @@ use concordium_std::HashSha2256;
 use concordium_std::{CredentialSignatures, PublicKeyEd25519, SignatureEd25519, Timestamp};
 use registry::{AtomicUpdateParam, ImportContractsParam};
 use umbrella_feeds::{
-    InitParamsUmbrellaFeeds, Message, PriceData, SchemTypeTripleWrapper, UpdateParams,
+    ContractSetup, InitParamsUmbrellaFeeds, Message, PriceData, SchemTypeTripleWrapper,
+    UpdateParams,
 };
 
 const ACC_ADDR_OWNER: AccountAddress = AccountAddress([0u8; 32]);
@@ -173,8 +174,8 @@ fn test_init() {
     let (
         chain,
         initialization_umbrella_feeds,
-        _initialization_registry,
-        _initialization_staking_bank,
+        initialization_registry,
+        initialization_staking_bank,
     ) = setup_chain_and_contract();
 
     // Checking DECIMALS
@@ -198,6 +199,36 @@ fn test_init() {
     let value: u8 = from_bytes(&invoke.return_value).expect("Should return a valid result");
 
     assert_eq!(value, 4);
+
+    // Checking viewContractSetup
+
+    let invoke = chain
+        .contract_invoke(
+            ACC_ADDR_OWNER,
+            Address::Account(ACC_ADDR_OWNER),
+            Energy::from(10000),
+            UpdateContractPayload {
+                amount: Amount::zero(),
+                address: initialization_umbrella_feeds.contract_address,
+                receive_name: OwnedReceiveName::new_unchecked(
+                    "umbrella_feeds.viewContractSetup".to_string(),
+                ),
+                message: OwnedParameter::empty(),
+            },
+        )
+        .expect("Should be able to query");
+
+    let value: ContractSetup =
+        from_bytes(&invoke.return_value).expect("Should return a valid result");
+
+    assert_eq!(
+        value,
+        ContractSetup {
+            deployed_at: Timestamp::from_timestamp_millis(0),
+            registry: initialization_registry.contract_address,
+            staking_bank: initialization_staking_bank.contract_address,
+        }
+    );
 }
 
 /// Test updating the price feed with two signers and two price feeds.
