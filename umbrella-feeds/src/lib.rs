@@ -232,6 +232,7 @@ fn upgrade_natively<S: HasStateApi>(
 /// It rejects if:
 /// - Sender is not this smart contract instance.
 /// - It fails to read the state root.
+/// - The invoke to the regisry contract fails.
 #[receive(
     contract = "umbrella_feeds",
     name = "migration",
