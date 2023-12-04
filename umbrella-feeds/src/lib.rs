@@ -226,6 +226,52 @@ fn upgrade_natively<S: HasStateApi>(
     Ok(())
 }
 
+/// Migration function that has to be called as part of the `upgradeNatively` invoke.
+/// This function updates the staking bank contract to the up-to-date value from the registry.
+///
+/// It rejects if:
+/// - Sender is not this smart contract instance.
+/// - It fails to read the state root.
+#[receive(
+    contract = "umbrella_feeds",
+    name = "migration",
+    error = "CustomContractError",
+    low_level
+)]
+fn contract_migration<S: HasStateApi>(
+    ctx: &impl HasReceiveContext,
+    host: &mut impl HasHost<S>,
+) -> Result<(), CustomContractError> {
+    // Check that only this contract instance can call this function.
+    ensure!(
+        ctx.sender().matches_contract(&ctx.self_address()),
+        CustomContractError::Unauthorized
+    );
+
+    // Read the top-level contract state.
+    let mut state: State<S> = host.state().read_root()?;
+
+    // Query the up-to-date staking_bank contract address from the registry.
+    let new_staking_bank = host.invoke_contract_read_only::<String>(
+        &state.registry,
+        &"StakingBank".to_string(),
+        EntrypointName::new_unchecked("getAddress"),
+        Amount::zero(),
+    )?;
+
+    let new_staking_bank: ContractAddress = new_staking_bank
+        .ok_or(CustomContractError::InvokeContractError)?
+        .get()?;
+
+    // Update staking bank in state.
+    state.staking_bank = new_staking_bank;
+
+    host.state_mut().write_root(&state);
+    host.commit_state();
+
+    Ok(())
+}
+
 /// Part of the parameter type for the contract function `update`.
 /// Specifies the message that is signed.
 #[derive(SchemaType, Serialize, Clone)]
