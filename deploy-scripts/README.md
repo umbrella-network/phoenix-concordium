@@ -4,7 +4,7 @@ This project contains scripts:
 
 - to deploy the whole protocol (deploying the `registry`, `staking_bank`, and `umbrella_feeds` contracts and setting up the protocol)
 - to register contracts in the `registry` (registering a list of contracts in the `registry` contract using the `importContracts` entry point)
-- to upgrade the `staking_bank` contract (checking that the new `staking_bank` module reference differs from the old one. If yes, deploying and initializing a new `staking_bank` and registering it in the `registry` contract using the `importContracts` entry point)
+- to upgrade the `staking_bank` contract (checking that the new `staking_bank` module reference differs from the old one. If yes, deploying and initializing a new `staking_bank` and registering it in the `registry` contract using the `importContracts` entry point). ATTENTION: After upgrading the `staking_bank` contract, you also have to upgrade the `umbrella_feeds` contract so it can pick up the new `staking_bank` address from the registry.
 - to upgrade the `umbrella_feeds` contract (checking that the new `umbrella_feeds` module reference differs from the old one. If yes, deploying the new `umbrella_feeds` module and natively upgrade the old umbrella feeds contract with it via the `registry` contract using the `atomicUpdate` entry point)
 
 # Running The Scripts

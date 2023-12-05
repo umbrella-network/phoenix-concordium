@@ -3,7 +3,7 @@ use anyhow::{bail, Context, Error};
 use concordium_rust_sdk::{
     common::types::Amount,
     smart_contracts::{
-        common::{self as contracts_common, Deserial, ParseResult},
+        common::{self as contracts_common, Deserial, OwnedEntrypointName, ParseResult},
         engine::v1::ReturnValue,
         types::{
             InvokeContractResult::{Failure, Success},
@@ -524,7 +524,10 @@ async fn main() -> Result<(), Error> {
 
                 let bytes = contracts_common::to_bytes(&AtomicUpdateParam {
                     module: new_umbrella_feeds_module_reference,
-                    migrate: None,
+                    migrate: Some((
+                        OwnedEntrypointName::new_unchecked("migration".to_string()),
+                        OwnedParameter::empty(),
+                    )),
                     contract_address: old_umbrella_feeds_contract,
                 });
 
