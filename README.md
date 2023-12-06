@@ -8,9 +8,17 @@ The protocol consists of three smart contract folders:
 - `StakingBank`
 - `UmbrellaFeeds`
 
+# Init
+
+https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/setup-env.html
+
+1. https://rustup.rs/
+2. new way of install: `cargo install --locked cargo-concordium`
+
 # Compiling the contracts
 
-In each of the above contract folders, you can build the smart contract (with its embedded schema) with the following command (except for the `StakingBank` contract):
+In each of the above contract folders, you can build the smart contract (with its embedded schema) with the following
+command (except for the `StakingBank` contract):
 
 ```cargo concordium build -e```
 
@@ -24,7 +32,8 @@ Note: The `StakingBank` contract needs to be built for its respective environmen
 
 # Testing the contracts
 
-In each of the above contract folders, you can run the integration test with the following command (except for the `StakingBank` contract):
+In each of the above contract folders, you can run the integration test with the following command (except for
+the `StakingBank` contract):
 
 ```cargo concordium test```
 
@@ -33,8 +42,9 @@ To test the `StakingBank` contract use the following command:
 ```cargo concordium test -- --features development```
 
 # Using the makeFile
- 
-You can execute from the root of this folder the following commands via the `makeFile` to simplify development and testing:
+
+You can execute from the root of this folder the following commands via the `makeFile` to simplify development and
+testing:
 
 ```make build-all-production``` to build all contracts with production setting.
 
@@ -42,7 +52,8 @@ You can execute from the root of this folder the following commands via the `mak
 
 ```make build-all-sandbox``` to build all contracts with sandbox setting.
 
-```make build-all``` to build all contracts (the staking bank is built three times with production, sandbox, and development setting).
+```make build-all``` to build all contracts (the staking bank is built three times with production, sandbox, and
+development setting).
 
 ```make test-all``` to run all tests.
 
