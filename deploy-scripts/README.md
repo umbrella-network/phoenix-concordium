@@ -60,6 +60,8 @@ Execute the register script in this folder (an example command is shown below):
 ```shell
 //                                                                                                                                                                          bank,               feeds
 cargo run register --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7281,0>" --contract "<7373,0>" --contract "<7283,0>" 
+// SBX
+cargo run register --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7542,0>" --contract "<7543,0>" --contract "<7544,0>" 
 ```
 
 ## To upgrade the `staking_bank` contract:
