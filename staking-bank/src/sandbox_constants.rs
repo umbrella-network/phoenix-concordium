@@ -5,8 +5,17 @@ use concordium_std::*;
 
 // Sandbox constants and functions
 
-pub(crate) const VALIDATOR_0: PublicKeyEd25519 = PublicKeyEd25519([0u8; 32]);
-pub(crate) const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([1u8; 32]);
+// verifyKey: 31ed9d6a2868aea363942944b0cb3fa823bb09c254868e3793f35115e34befb7
+pub(crate) const VALIDATOR_0: PublicKeyEd25519 = PublicKeyEd25519([
+    49, 237, 157, 106, 40, 104, 174, 163, 99, 148, 41, 68, 176, 203, 63, 168, 35, 187, 9, 194, 84,
+    134, 142, 55, 147, 243, 81, 21, 227, 75, 239, 183,
+]);
+
+// verifyKey: 2b9913a3c764fb82539b55da74d01e475c69a41f7c814a9220eb367ba7fbac67
+pub(crate) const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([
+    43, 153, 19, 163, 199, 100, 251, 130, 83, 155, 85, 218, 116, 208, 30, 71, 92, 105, 164, 31,
+    124, 129, 74, 146, 32, 235, 54, 123, 167, 251, 172, 103,
+]);
 
 type StakingBalanceAmount = u8;
 
@@ -39,8 +48,8 @@ pub(crate) fn validators<S: HasStateApi>(
     let id: PublicKeyEd25519 = ctx.parameter_cursor().get()?;
 
     match id {
-        VALIDATOR_0 => Ok((id, "https://validator.umb.network".to_string())),
-        VALIDATOR_1 => Ok((id, "https://validator2.umb.network".to_string())),
+        VALIDATOR_0 => Ok((id, "https://validator.sbx.umb.network".to_string())),
+        VALIDATOR_1 => Ok((id, "https://validator2.sbx.umb.network".to_string())),
         _ => bail!(CustomContractError::NotValidator.into()),
     }
 }
