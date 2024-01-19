@@ -14,7 +14,7 @@ name: clippy & fmt & build & test
 
 env:
   RUST_FMT: nightly-2023-04-01
-  RUST_VERSION: "1.66"
+  RUST_VERSION: "1.67"
 
 jobs:
   rustfmt:
@@ -27,6 +27,7 @@ jobs:
           - staking-bank/Cargo.toml
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml
 
     steps:
       - name: Checkout sources
@@ -60,6 +61,7 @@ jobs:
           - staking-bank/Cargo.toml
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml
 
     steps:
       - name: Checkout sources
@@ -91,9 +93,10 @@ jobs:
 
         crates:
           - registry/Cargo.toml
-          - staking-bank/Cargo.toml --features production
+          - staking-bank/Cargo.toml --features development
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml
 
     steps:
       - name: Checkout sources
@@ -112,7 +115,7 @@ jobs:
         with:
           command: test
           # only run the library tests, no doc tests
-          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --lib
+          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }}
 
   check-no-std-build:
     name: Build on nightly,
@@ -130,6 +133,9 @@ jobs:
           - staking-bank/Cargo.toml --features sandbox
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml --features production
+          - oracle-integration/Cargo.toml --features development
+          - oracle-integration/Cargo.toml
 
         features:
           -
@@ -170,6 +176,9 @@ jobs:
           - staking-bank/Cargo.toml --features sandbox
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml --features production
+          - oracle-integration/Cargo.toml --features development
+          - oracle-integration/Cargo.toml
 
         features:
           -
@@ -193,5 +202,5 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --features=${{ matrix.features }} --lib
+          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --features=${{ matrix.features }}
 
