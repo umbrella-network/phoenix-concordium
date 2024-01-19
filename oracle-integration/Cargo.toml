@@ -1,0 +1,26 @@
+[package]
+name = "oracle-integration"
+version = "0.1.0"
+authors = ["Concordium <developers@concordium.com>"]
+edition = "2021"
+license = "MPL-2.0"
+description = "An example of how to read price data from the umbrella oracle."
+
+[dependencies]
+concordium-std = {version = "8.0", default-features = false}
+umbrella-feeds = {path = "../umbrella-feeds"}
+
+[dev-dependencies]
+concordium-smart-contract-testing = "3.0"
+ed25519-dalek = { version = "2.0", features = ["rand_core"]  }
+registry = {path = "../registry"}
+
+[features]
+default = ["std", "wee_alloc"]
+std = ["concordium-std/std"]
+wee_alloc = ["concordium-std/wee_alloc"]
+development = []
+production = []
+
+[lib]
+crate-type=["cdylib", "rlib"]

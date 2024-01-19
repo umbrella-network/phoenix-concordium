@@ -1,12 +1,16 @@
 # Concordium Umbrella oracle.
 
-This is a temporary development repository to develop smart contracts for the Umbrella oracle on Concordium.
+This is the Umbrella oracle protocol on Concordium.
 
 The protocol consists of three smart contract folders:
 
 - `Registry`
 - `StakingBank`
 - `UmbrellaFeeds`
+
+There exists one smart contract folder that showcases the integration into the protocol:
+
+- `OracleIntegration` (This folder has a separate README.md file with additional information)
 
 # Init
 

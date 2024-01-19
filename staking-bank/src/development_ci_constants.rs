@@ -5,18 +5,16 @@ use concordium_std::*;
 
 // Development constants and functions
 
-// ATTENTION: Use a different key in production. The private key is exposed and used for testing here.
-// Private key: 8ECA45107A878FB879B84401084B55AD4919FC0F7D14E8915D8A5989B1AE1C01
+// 77b0d12d7f465f24dd60859154224e49c2585f38e7e550c6ebb04b76a15db317 (public key ???)
 pub(crate) const VALIDATOR_0: PublicKeyEd25519 = PublicKeyEd25519([
-    120, 154, 141, 6, 248, 239, 77, 224, 80, 62, 139, 136, 211, 204, 105, 208, 26, 11, 2, 208, 195,
-    253, 29, 192, 126, 199, 208, 39, 69, 4, 246, 32,
+    119, 176, 209, 45, 127, 70, 95, 36, 221, 96, 133, 145, 84, 34, 78, 73, 194, 88, 95, 56, 231,
+    229, 80, 198, 235, 176, 75, 118, 161, 93, 179, 23,
 ]);
 
-// ATTENTION: Use a different key in production. The private key is exposed and used for testing here.
-// Private key: 12827BE279AA7DB7400E9322824CF3C7D5D599005836FDA506351B9B340838A9
+// 6a33d6fe578a70be1c1ac29e5b887c92fca0c44ca7d5c820a6573fc1125fac31 (public key ???)
 pub(crate) const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([
-    217, 108, 75, 18, 24, 234, 126, 194, 15, 70, 4, 214, 194, 240, 47, 163, 243, 107, 81, 132, 67,
-    243, 162, 209, 78, 136, 94, 127, 247, 21, 222, 221,
+    106, 51, 214, 254, 87, 138, 112, 190, 28, 26, 194, 158, 91, 136, 124, 146, 252, 160, 196, 76,
+    167, 213, 200, 32, 166, 87, 63, 193, 18, 95, 172, 49,
 ]);
 
 type StakingBalanceAmount = u8;
