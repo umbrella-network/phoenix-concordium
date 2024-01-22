@@ -87,9 +87,9 @@ fn setup_chain_and_contract() -> (
             Signer::with_one_key(),
             ACC_ADDR_OWNER,
             module_load_v1("../registry/registry.wasm.v1")
-                .expect("`Umbrella_feeds.wasm.v1` module should be loaded"),
+                .expect("`Registry.wasm.v1` module should be loaded"),
         )
-        .expect("`Umbrella_feeds.wasm.v1` deployment should always succeed");
+        .expect("`Registry.wasm.v1` deployment should always succeed");
 
     let initialization_registry = chain
         .contract_init(

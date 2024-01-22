@@ -20,7 +20,7 @@ oracle-integration-local:
 	cd ./oracle-integration; cargo concordium build -e --out oracle_integration.wasm.v1 -- --features local;
 
 build-contracts:
-	cd registry; cargo concordium build -e --out registry.wasm.v1; cd ../umbrella-feeds; cargo concordium build -e --out umbrella_feeds.wasm.v1; cd ../dummy-contract; cargo concordium build -e --out dummy-contract.wasm.v1;
+	cd registry; cargo concordium build -e --out registry.wasm.v1; cd ../umbrella-feeds; cargo concordium build -e --out umbrella_feeds.wasm.v1; cd ../dummy-contract; cargo concordium build -e --out dummy_contract.wasm.v1;
 
 build-all-production: build-contracts staking-bank-production oracle-integration-production
 

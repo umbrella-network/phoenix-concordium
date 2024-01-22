@@ -49,7 +49,7 @@ Note: The `OracleIntegration` contract needs to be built for its respective envi
 In each of the above contract folders, you can run the integration test with the following commands (except for
 the `StakingBank`/`OracleIntegration` contract):
 
-```cargo concordium build --out registry.wasm.v1 (or umbrella_feeds.wasm.v1 or dummy-contract.wasm.v1)```
+```cargo concordium build --out registry.wasm.v1 (or umbrella_feeds.wasm.v1 or dummy_contract.wasm.v1)```
 
 ```cargo concordium test```
 

@@ -91,8 +91,8 @@ fn prices(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<(Strin
     Ok(prices)
 }
 
-#[cfg(any(feature = "production", feature = "development", feature = "local"))]
 /// Receive function to update the prices in the contract state.
+#[cfg(any(feature = "production", feature = "development", feature = "local"))]
 #[receive(
     contract = "smart_contract_oracle_integration",
     name = "update_price",
