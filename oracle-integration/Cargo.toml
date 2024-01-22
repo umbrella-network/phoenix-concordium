@@ -21,6 +21,7 @@ std = ["concordium-std/std"]
 wee_alloc = ["concordium-std/wee_alloc"]
 development = []
 production = []
+local = []
 
 [lib]
 crate-type=["cdylib", "rlib"]

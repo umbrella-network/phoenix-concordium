@@ -10,13 +10,13 @@ Run one of the commands in this folder:
 
 ```cargo concordium build -e -o ./oracle_integration.wasm.v1 -- --features development```
 
-```cargo concordium build -e -o ./oracle_integration.wasm.v1``` (local environment for running integration tests)
+```cargo concordium build -e -o ./oracle_integration.wasm.v1 -- --features local``` (local environment for running integration tests)
 
 # Testing the integration contract
 
 Run the following two commands in this folder:
 
-```cargo concordium build -e -o ./oracle_integration.wasm.v1```
+```cargo concordium build -e -o ./oracle_integration.wasm.v1 -- --features local```
 
 ```cargo concordium test```
 

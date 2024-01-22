@@ -2,10 +2,11 @@
 #![cfg_attr(not(feature = "std"), no_std)]
 
 use concordium_std::*;
+#[cfg(any(feature = "production", feature = "development", feature = "local"))]
 use umbrella_feeds::PriceData;
 
 /// Registry contract address in the integration test cases.
-#[cfg(not(any(feature = "production", feature = "development")))]
+#[cfg(feature = "local")]
 const UMBRELLA_REGISTRY_CONTRACT: ContractAddress = ContractAddress {
     index: 1,
     subindex: 0,
@@ -90,6 +91,7 @@ fn prices(_ctx: &ReceiveContext, host: &Host<State>) -> ReceiveResult<Vec<(Strin
     Ok(prices)
 }
 
+#[cfg(any(feature = "production", feature = "development", feature = "local"))]
 /// Receive function to update the prices in the contract state.
 #[receive(
     contract = "smart_contract_oracle_integration",

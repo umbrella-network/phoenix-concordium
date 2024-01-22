@@ -230,7 +230,10 @@ fn test_validators() {
 
     assert_eq!(
         state,
-        (VALIDATOR_0, String::from("https://validator.umb.network"))
+        (
+            VALIDATOR_0,
+            String::from("https://validator.dev.umb.network")
+        )
     );
 
     // Checking publicKey.

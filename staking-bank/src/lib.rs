@@ -19,7 +19,18 @@ mod sandbox_constants;
 #[cfg(feature = "sandbox")]
 use sandbox_constants::*;
 
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+// To run local integration test cases.
+#[cfg(feature = "local")]
+mod local_constants;
+#[cfg(feature = "local")]
+use local_constants::*;
+
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 const ONE: StakingBalanceAmount = 1u8;
 
 #[allow(dead_code)]
@@ -72,7 +83,12 @@ fn init<S: HasStateApi>(
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `NUMBER_OF_VALIDATORS`.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "NUMBER_OF_VALIDATORS",
@@ -86,7 +102,12 @@ fn number_of_validators<S: HasStateApi>(
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `TOTAL_SUPPLY`.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "TOTAL_SUPPLY",
@@ -100,7 +121,12 @@ fn total_supply_1<S: HasStateApi>(
 }
 
 /// Equivalent to solidity's getter function which is automatically created from the public storage variable `ONE`.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "ONE",
@@ -114,7 +140,12 @@ fn one<S: HasStateApi>(
 }
 
 /// View function that returns the balance of an validator.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "balances",
@@ -135,7 +166,12 @@ fn balances<S: HasStateApi>(
 }
 
 /// View function that returns a true, if all of the provided public keys are validators, otherwise a false.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "verifyValidators",
@@ -158,7 +194,12 @@ fn verify_validators<S: HasStateApi>(
 }
 
 /// View function that returns the number of validtors.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "getNumberOfValidators",
@@ -172,7 +213,12 @@ fn get_number_of_validators<S: HasStateApi>(
 }
 
 /// View function that returns the balances of validators.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "getBalances",
@@ -191,7 +237,12 @@ fn get_balances<S: HasStateApi>(
 }
 
 /// View function that returns the public key of a validator from an index.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "publicKey",
@@ -207,7 +258,12 @@ fn public_key<S: HasStateApi>(
 }
 
 /// View function that returns the balance of an validator. This is to follow ERC20 interface.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "balanceOf",
@@ -228,7 +284,12 @@ fn balance_of<S: HasStateApi>(
 }
 
 /// View function that returns the total supply value. This is to follow ERC20 interface.
-#[cfg(any(feature = "production", feature = "development", feature = "sandbox"))]
+#[cfg(any(
+    feature = "production",
+    feature = "development",
+    feature = "sandbox",
+    feature = "local"
+))]
 #[receive(
     contract = "staking_bank",
     name = "totalSupply",
