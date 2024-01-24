@@ -1,12 +1,16 @@
 # Concordium Umbrella oracle.
 
-This is a temporary development repository to develop smart contracts for the Umbrella oracle on Concordium.
+This is the Umbrella oracle protocol on Concordium.
 
 The protocol consists of three smart contract folders:
 
 - `Registry`
 - `StakingBank`
 - `UmbrellaFeeds`
+
+There exists one smart contract folder that showcases the integration into the protocol:
+
+- `OracleIntegration` (This folder has a separate README.md file with additional information)
 
 # Init
 
@@ -18,7 +22,7 @@ https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/setup
 # Compiling the contracts
 
 In each of the above contract folders, you can build the smart contract (with its embedded schema) with the following
-command (except for the `StakingBank` contract):
+command (except for the `StakingBank`/`OracleIntegration` contract):
 
 ```cargo concordium build -e```
 
@@ -30,16 +34,30 @@ Note: The `StakingBank` contract needs to be built for its respective environmen
 
 ```cargo concordium build -e -- --features sandbox```
 
+```cargo concordium build -e -- --features local```
+
+Note: The `OracleIntegration` contract needs to be built for its respective environment with the `--features` flag:
+
+```cargo concordium build -e -- --features production```
+
+```cargo concordium build -e -- --features development```
+
+```cargo concordium build -e -- --features local```
+
 # Testing the contracts
 
-In each of the above contract folders, you can run the integration test with the following command (except for
-the `StakingBank` contract):
+In each of the above contract folders, you can run the integration test with the following commands (except for
+the `StakingBank`/`OracleIntegration` contract):
+
+```cargo concordium build --out registry.wasm.v1 (or umbrella_feeds.wasm.v1 or dummy_contract.wasm.v1)```
 
 ```cargo concordium test```
 
-To test the `StakingBank` contract use the following command:
+To test the `StakingBank` or the `OracleIntegration` contract use the following commands:
 
-```cargo concordium test -- --features development```
+```cargo concordium build --out staking_bank.wasm.v1 (or oracle_integration.wasm.v1) -- --features local```
+
+```cargo concordium test```
 
 # Using the makeFile
 
@@ -52,8 +70,10 @@ testing:
 
 ```make build-all-sandbox``` to build all contracts with sandbox setting.
 
-```make build-all``` to build all contracts (the staking bank is built three times with production, sandbox, and
-development setting).
+```make build-all-local``` to build all contracts with local setting.
+
+```make build-all``` to build all contracts (the staking bank is built four times with production, sandbox,
+development, and local settings, the oracle integration contract is built three times with procution, development, and local settings).
 
 ```make test-all``` to run all tests.
 
