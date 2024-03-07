@@ -5,13 +5,13 @@ use concordium_std::*;
 
 // Development constants and functions
 
-// 77b0d12d7f465f24dd60859154224e49c2585f38e7e550c6ebb04b76a15db317
+// 77b0d12d7f465f24dd60859154224e49c2585f38e7e550c6ebb04b76a15db317 (public key ???)
 pub(crate) const VALIDATOR_0: PublicKeyEd25519 = PublicKeyEd25519([
     119, 176, 209, 45, 127, 70, 95, 36, 221, 96, 133, 145, 84, 34, 78, 73, 194, 88, 95, 56, 231,
     229, 80, 198, 235, 176, 75, 118, 161, 93, 179, 23,
 ]);
 
-// 6a33d6fe578a70be1c1ac29e5b887c92fca0c44ca7d5c820a6573fc1125fac31
+// 6a33d6fe578a70be1c1ac29e5b887c92fca0c44ca7d5c820a6573fc1125fac31 (public key ???)
 pub(crate) const VALIDATOR_1: PublicKeyEd25519 = PublicKeyEd25519([
     106, 51, 214, 254, 87, 138, 112, 190, 28, 26, 194, 158, 91, 136, 124, 146, 252, 160, 196, 76,
     167, 213, 200, 32, 166, 87, 63, 193, 18, 95, 172, 49,

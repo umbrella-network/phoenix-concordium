@@ -1,6 +1,5 @@
 on:
   # Trigger the workflow on push or pull request,
-  # but only for the main branch
   push:
     branches:
       - main
@@ -14,7 +13,8 @@ name: clippy & fmt & build & test
 
 env:
   RUST_FMT: nightly-2023-04-01
-  RUST_VERSION: "1.66"
+  RUST_VERSION: "1.67"
+  CARGO_CONCORDIUM_VERSION: "3.0.0"
 
 jobs:
   rustfmt:
@@ -27,10 +27,11 @@ jobs:
           - staking-bank/Cargo.toml
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install nightly toolchain with rustfmt available
         uses: actions-rs/toolchain@v1
@@ -60,10 +61,11 @@ jobs:
           - staking-bank/Cargo.toml
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install toolchain with clippy available
         uses: actions-rs/toolchain@v1
@@ -80,40 +82,6 @@ jobs:
           command: clippy
           args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --features concordium-std/build-schema --features concordium-std/wasm-test -- -D warnings
 
-  test-contracts:
-    name: Test contracts
-    runs-on: ubuntu-latest
-    needs: [rustfmt, clippy-schema]
-    strategy:
-      matrix:
-        target:
-          - x86_64-unknown-linux-gnu
-
-        crates:
-          - registry/Cargo.toml
-          - staking-bank/Cargo.toml --features production
-          - umbrella-feeds/Cargo.toml
-          - dummy-contract/Cargo.toml
-
-    steps:
-      - name: Checkout sources
-        uses: actions/checkout@v2
-
-      - name: Install toolchain
-        uses: actions-rs/toolchain@v1
-        with:
-          profile: minimal
-          toolchain: ${{ env.RUST_VERSION }}
-          target: ${{ matrix.target }}
-          override: true
-
-      - name: Run cargo test
-        uses: actions-rs/cargo@v1
-        with:
-          command: test
-          # only run the library tests, no doc tests
-          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --lib
-
   check-no-std-build:
     name: Build on nightly,
     runs-on: ubuntu-latest
@@ -128,8 +96,12 @@ jobs:
           - staking-bank/Cargo.toml --features production
           - staking-bank/Cargo.toml --features development
           - staking-bank/Cargo.toml --features sandbox
+          - staking-bank/Cargo.toml --features local
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml --features production
+          - oracle-integration/Cargo.toml --features development
+          - oracle-integration/Cargo.toml --features local
 
         features:
           -
@@ -137,7 +109,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
 
       - name: Install nightly toolchain with check available
         uses: actions-rs/toolchain@v1
@@ -168,8 +140,12 @@ jobs:
           - staking-bank/Cargo.toml --features production
           - staking-bank/Cargo.toml --features development
           - staking-bank/Cargo.toml --features sandbox
+          - staking-bank/Cargo.toml --features local
           - umbrella-feeds/Cargo.toml
           - dummy-contract/Cargo.toml
+          - oracle-integration/Cargo.toml --features production
+          - oracle-integration/Cargo.toml --features development
+          - oracle-integration/Cargo.toml --features local
 
         features:
           -
@@ -177,7 +153,7 @@ jobs:
 
     steps:
       - name: Checkout sources
-        uses: actions/checkout@v2
+        uses: actions/checkout@v4
         with:
           submodules: true
 
@@ -193,5 +169,68 @@ jobs:
         uses: actions-rs/cargo@v1
         with:
           command: build
-          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --features=${{ matrix.features }} --lib
+          args: --manifest-path ${{ matrix.crates }} --target=${{ matrix.target }} --features=${{ matrix.features }}
 
+  build-local-and-test:
+    name: Build contracts and test contracts
+    runs-on: ubuntu-latest
+    needs: [rustfmt, clippy-schema]
+
+    strategy:
+      matrix:
+        target:
+          - x86_64-unknown-linux-gnu
+
+    steps:
+      - name: Checkout sources
+        uses: actions/checkout@v4
+        with:
+          submodules: true
+
+      - name: Install toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: ${{ env.RUST_VERSION }}
+          target: ${{ matrix.target }}
+          override: true
+          
+      - name: Install Wasm target
+        run: rustup target install wasm32-unknown-unknown
+
+      - name: Download and install Cargo Concordium
+        run: |
+          CARGO_CCD=cargo-concordium_${{ env.CARGO_CONCORDIUM_VERSION }}
+          wget https://distribution.concordium.software/tools/linux/$CARGO_CCD
+          chmod +x $CARGO_CCD
+          sudo mv $CARGO_CCD /usr/bin/cargo-concordium
+
+      - name: Run cargo build registry
+        run: cargo concordium build --out "./registry/registry.wasm.v1" -- --manifest-path "registry/Cargo.toml" --locked
+
+      - name: Run cargo build staking_bank
+        run: cargo concordium build --out "./staking-bank/staking_bank.wasm.v1" -- --manifest-path "staking-bank/Cargo.toml" --features local --locked
+
+      - name: Run cargo build umbrella_feeds
+        run: cargo concordium build --out "./umbrella-feeds/umbrella_feeds.wasm.v1" -- --manifest-path "umbrella-feeds/Cargo.toml" --locked
+
+      - name: Run cargo build oracle_integration
+        run: cargo concordium build --out "./oracle-integration/oracle_integration.wasm.v1" -- --manifest-path "oracle-integration/Cargo.toml" --features local --locked
+     
+      - name: Run cargo build dummy_contract
+        run: cargo concordium build --out "./dummy-contract/dummy_contract.wasm.v1" -- --manifest-path "dummy-contract/Cargo.toml" --locked
+
+      - name: Run cargo test registry
+        run: cargo concordium test -- --manifest-path "registry/Cargo.toml" --locked
+
+      - name: Run cargo test staking-bank
+        run: cargo concordium test -- --manifest-path "staking-bank/Cargo.toml" --locked
+
+      - name: Run cargo test oracle-integration
+        run: cargo concordium test -- --manifest-path "oracle-integration/Cargo.toml" --locked
+
+      - name: Run cargo test umbrella-feeds
+        run: cargo concordium test -- --manifest-path "umbrella-feeds/Cargo.toml" --locked
+
+      - name: Run cargo test dummy-contract
+        run: cargo concordium test -- --manifest-path "dummy-contract/Cargo.toml" --locked

@@ -185,10 +185,10 @@ fn test_import_contracts() {
         .module_deploy_v1(
             Signer::with_one_key(),
             ACC_ADDR_OWNER,
-            module_load_v1("../dummy-contract/dummy-contract.wasm.v1")
-                .expect("`dummy-contract.wasm.v1` module should be loaded"),
+            module_load_v1("../dummy-contract/dummy_contract.wasm.v1")
+                .expect("`dummy_contract.wasm.v1` module should be loaded"),
         )
-        .expect("`dummy-contract.wasm.v1` deployment should always succeed");
+        .expect("`dummy_contract.wasm.v1` deployment should always succeed");
 
     let initialization_dummy_contract = chain
         .contract_init(
@@ -202,7 +202,7 @@ fn test_import_contracts() {
                 param: OwnedParameter::empty(),
             },
         )
-        .expect("Initialization of `dummy-contract` should always succeed");
+        .expect("Initialization of `dummy_contract` should always succeed");
 
     let input_parameter = ImportContractsParam {
         entries: vec![initialization_dummy_contract.contract_address],
