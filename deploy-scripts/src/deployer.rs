@@ -19,6 +19,13 @@ use concordium_rust_sdk::{
 };
 use std::{path::Path, sync::Arc};
 
+use concordium_rust_sdk::{
+    common::types::{CredentialIndex, KeyIndex, Signature}
+};
+
+use std::collections::{BTreeMap};
+
+
 /// A struct containing connection and wallet information.
 #[derive(Debug, Clone)]
 pub struct Deployer {
