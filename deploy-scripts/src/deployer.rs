@@ -284,7 +284,7 @@ impl Deployer {
         other_signature.insert(
             KeyIndex::from(1),
             Signature {
-                sig: vec![207, 100, 165, 247, 44, 40, 202, 53, 255, 97, 99, 253, 50, 97, 39, 63, 172, 69, 250, 113, 10, 20, 97, 225, 208, 254, 252, 84, 30, 195, 241, 82, 142, 58, 172, 172, 232, 22, 135, 90, 125, 107, 186, 144, 146, 68, 16, 198, 190, 27, 141, 77, 58, 225, 138, 251, 161, 217, 111, 253, 103, 34, 114, 15],
+                sig: vec![228, 241, 3, 126, 1, 19, 36, 67, 97, 190, 166, 97, 184, 130, 187, 188, 108, 154, 107, 55, 71, 99, 107, 126, 11, 186, 237, 42, 163, 77, 9, 45, 125, 52, 11, 183, 37, 141, 184, 195, 22, 101, 51, 50, 140, 254, 44, 134, 81, 142, 206, 20, 55, 86, 218, 132, 26, 15, 103, 77, 2, 152, 65, 6],
             },
         );
 
@@ -292,10 +292,15 @@ impl Deployer {
 
         let bi = transactions::BlockItem::AccountTransaction(tx);
 
-        bail!(Error::msg(
-            "dont send transaction first, collect just the signature; \
-            give signature to second party; \
-            update above `other_signature` and then remove this error to send the transaction on chain"));
+        // bail!(Error::msg(
+        //     "dont send transaction first, collect just the signature; \
+        //     give signature to second party; \
+        //     update above `other_signature` and then remove this error to send the transaction on chain"));
+
+        let tx_hash = self.client.send_block_item(&bi).await?;
+        let (_, block_item) = self.client.wait_until_finalized(&tx_hash).await?;
+
+        Ok((tx_hash, block_item))
     }
 
     /// A function to estimate the energy needed to execute a transaction on the
