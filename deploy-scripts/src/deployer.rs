@@ -251,13 +251,13 @@ impl Deployer {
             payload: update_payload,
         };
 
-        let expiry = expiry.unwrap_or_else(|| {
-            TransactionTime::from_seconds((chrono::Utc::now().timestamp() + 300) as u64)
-        });
+        // when using multisig, we need to have hardcoded timestamp! must be the same for all signers
+        let expiry =
+            expiry.unwrap_or_else(|| TransactionTime::from_seconds((1712750064 + 100000) as u64));
 
         let energy = energy.unwrap_or(GivenEnergy::Absolute(Energy { energy: 50000 }));
 
-        let tx = transactions::send::make_and_sign_transaction(
+        let mut tx = transactions::send::make_and_sign_transaction(
             &*self.key,
             self.key.address,
             nonce.nonce,
@@ -265,19 +265,30 @@ impl Deployer {
             energy,
             payload,
         );
+
+        println!(
+            "Share this signature to your second party: {:?}",
+            tx.signature.signatures
+        );
+
+        let tx_local = tx.signature.signatures.entry(CredentialIndex { index: 0 });
+
+        let mut other_signature = BTreeMap::new();
+        other_signature.insert(
+            KeyIndex::from(1),
+            Signature {
+                sig: vec![207, 100, 165, 247, 44, 40, 202, 53, 255, 97, 99, 253, 50, 97, 39, 63, 172, 69, 250, 113, 10, 20, 97, 225, 208, 254, 252, 84, 30, 195, 241, 82, 142, 58, 172, 172, 232, 22, 135, 90, 125, 107, 186, 144, 146, 68, 16, 198, 190, 27, 141, 77, 58, 225, 138, 251, 161, 217, 111, 253, 103, 34, 114, 15],
+            },
+        );
+
+        tx_local.and_modify(|x| x.append(&mut other_signature));
+
         let bi = transactions::BlockItem::AccountTransaction(tx);
 
-        let tx_hash = self.client.send_block_item(&bi).await?;
-
-        println!("Sent transaction with hash: {tx_hash}");
-
-        let (_, block_item) = self.client.wait_until_finalized(&tx_hash).await?;
-
-        self.check_outcome_of_update_transaction(&block_item)?;
-
-        println!("Transaction finalized: tx_hash={}", tx_hash,);
-
-        Ok((tx_hash, block_item))
+        bail!(Error::msg(
+            "dont send transaction first, collect just the signature; \
+            give signature to second party; \
+            update above `other_signature` and then remove this error to send the transaction on chain"));
     }
 
     /// A function to estimate the energy needed to execute a transaction on the
