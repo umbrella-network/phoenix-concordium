@@ -51,6 +51,7 @@ command is shown below):
 
 ```
 cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --required_signatures 2 --decimals 8
+cargo run deploy --node http://node.concordium.com:20000 --account ./_keys/prod/UMB_ProductionDeployer.json --required_signatures 6 --decimals 8
 ```
 
 ## To register contracts in the `registry` contract:

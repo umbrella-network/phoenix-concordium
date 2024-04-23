@@ -1,5 +1,5 @@
 staking-bank-production: 
-	cd ./staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features production;
+	cd ./staking-bank; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out staking_bank.wasm.v1 -- --features production;
 
 staking-bank-development: 
 	cd ./staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features development;
@@ -11,7 +11,7 @@ staking-bank-local:
 	cd ./staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features local;
 
 oracle-integration-production: 
-	cd ./oracle-integration; cargo concordium build -e --out oracle_integration.wasm.v1 -- --features production;
+	cd ./oracle-integration; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out oracle_integration.wasm.v1 -- --features production;
 
 oracle-integration-development: 
 	cd ./oracle-integration; cargo concordium build -e --out oracle_integration.wasm.v1 -- --features development;
@@ -19,18 +19,24 @@ oracle-integration-development:
 oracle-integration-local: 
 	cd ./oracle-integration; cargo concordium build -e --out oracle_integration.wasm.v1 -- --features local;
 
-build-contracts:
-	cd registry; cargo concordium build -e --out registry.wasm.v1; cd ../umbrella-feeds; cargo concordium build -e --out umbrella_feeds.wasm.v1; cd ../dummy-contract; cargo concordium build -e --out dummy_contract.wasm.v1;
+build-registry:
+	cd ./registry; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out registry.wasm.v1;
 
-build-all-production: build-contracts staking-bank-production oracle-integration-production
+build-umbrella_feeds:
+	cd ./umbrella-feeds; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out umbrella_feeds.wasm.v1;
+	
+build-dummy_contract:
+	cd ./dummy-contract; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out dummy_contract.wasm.v1;
 
-build-all-development: build-contracts staking-bank-development oracle-integration-development
+build-all-production: build-registry build-umbrella_feeds build-dummy_contract staking-bank-production oracle-integration-production
 
-build-all-sandbox: build-contracts staking-bank-sandbox
+build-all-development: build-registry build-umbrella_feeds build-dummy_contract staking-bank-development oracle-integration-development
 
-build-all-local: build-contracts staking-bank-local oracle-integration-local
+build-all-sandbox: build-registry build-umbrella_feeds build-dummy_contract staking-bank-sandbox
 
-build-all: build-contracts staking-bank-production staking-bank-sandbox staking-bank-development staking-bank-local oracle-integration-production oracle-integration-development oracle-integration-local
+build-all-local: build-registry build-umbrella_feeds build-dummy_contract staking-bank-local oracle-integration-local
+
+build-all: build-registry build-umbrella_feeds build-dummy_contract staking-bank-production staking-bank-sandbox staking-bank-development staking-bank-local oracle-integration-production oracle-integration-development oracle-integration-local
 
 test-all: build-all-local; cd registry; cargo concordium test; cd ../staking-bank; cargo concordium test; cd ../umbrella-feeds; cargo concordium test; cd ../oracle-integration; cargo concordium test;
 
