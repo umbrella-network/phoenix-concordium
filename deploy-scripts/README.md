@@ -40,8 +40,15 @@ cargo run deploy --help
 Compile your contracts for the respective environment by executing one of the commands in the root folder of this
 project:
 
+note: for verifiable remove/comment out any `dev-dependencies` from `Cargo.toml` eg:
+```toml
+#[dev-dependencies.registry]
+#path = "../registry/"
 ```
-make build-all-production
+
+then: `make build-all-production`
+
+```
 make build-all-development
 make build-all-sandbox
 ```
