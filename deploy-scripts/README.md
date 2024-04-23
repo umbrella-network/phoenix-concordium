@@ -53,6 +53,16 @@ make build-all-development
 make build-all-sandbox
 ```
 
+### Verification
+
+Commit verifiable builds so the .tar fines were available from public URL.
+
+```shell
+cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/6ba7ccd2d14b69b0f0d00ca483357b9ba108742d/registry/registry.wasm.v1.tar --verify
+```
+
+### Deployment
+
 Execute the deployment script in this folder to set up the protocol with the above-compiled contracts (an example
 command is shown below):
 
