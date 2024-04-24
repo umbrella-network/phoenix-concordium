@@ -208,8 +208,21 @@ async fn main() -> Result<(), Error> {
             required_signatures,
             decimals,
         } => {
-            // Setting up the connection
-            let concordium_client = v2::Client::new(url).await?;
+            // Setting up the connection to the node
+            let endpoint = if url
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &v2::Scheme::HTTPS)
+            {
+                url.tls_config(tonic::transport::channel::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium API.")?
+            } else {
+                url
+            };
+
+            let concordium_client = v2::Client::new(endpoint)
+                .await
+                .context("Unable to establish connection to the node.")?;
 
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
@@ -298,8 +311,21 @@ async fn main() -> Result<(), Error> {
             registry_contract,
             contract,
         } => {
-            // Setting up the connection
-            let concordium_client = v2::Client::new(url).await?;
+            // Setting up the connection to the node
+            let endpoint = if url
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &v2::Scheme::HTTPS)
+            {
+                url.tls_config(tonic::transport::channel::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium API.")?
+            } else {
+                url
+            };
+
+            let concordium_client = v2::Client::new(endpoint)
+                .await
+                .context("Unable to establish connection to the node.")?;
 
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
@@ -328,8 +354,21 @@ async fn main() -> Result<(), Error> {
             registry_contract,
             new_staking_bank,
         } => {
-            // Setting up the connection
-            let concordium_client = v2::Client::new(url).await?;
+            // Setting up the connection to the node
+            let endpoint = if url
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &v2::Scheme::HTTPS)
+            {
+                url.tls_config(tonic::transport::channel::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium API.")?
+            } else {
+                url
+            };
+
+            let concordium_client = v2::Client::new(endpoint)
+                .await
+                .context("Unable to establish connection to the node.")?;
 
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
@@ -446,9 +485,22 @@ async fn main() -> Result<(), Error> {
             registry_contract,
             new_umbrella_feeds,
         } => {
-            // Setting up the connection
-            let concordium_client = v2::Client::new(url).await?;
+            // Setting up the connection to the node
+            let endpoint = if url
+                .uri()
+                .scheme()
+                .map_or(false, |x| x == &v2::Scheme::HTTPS)
+            {
+                url.tls_config(tonic::transport::channel::ClientTlsConfig::new())
+                    .context("Unable to construct TLS configuration for the Concordium API.")?
+            } else {
+                url
+            };
 
+            let concordium_client = v2::Client::new(endpoint)
+                .await
+                .context("Unable to establish connection to the node.")?;
+            
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
             // Checking that the module reference is different from the umbrella_feeds module reference registered in the registry

@@ -23,7 +23,7 @@ path = "../registry/"
 path = "../staking-bank/"
 
 [dependencies]
-concordium-std = {version = "8.0", default-features = false}
+concordium-std = {version = "9.0", default-features = false}
 
 [lib]
 crate-type=["cdylib", "rlib"]

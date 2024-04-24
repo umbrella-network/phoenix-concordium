@@ -7,7 +7,7 @@ license = "MPL-2.0"
 description = "An example of how to read price data from the umbrella oracle."
 
 [dependencies]
-concordium-std = {version = "8.0", default-features = false}
+concordium-std = {version = "9.0", default-features = false}
 umbrella-feeds = {path = "../umbrella-feeds"}
 
 [dev-dependencies]
