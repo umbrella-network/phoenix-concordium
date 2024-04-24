@@ -500,7 +500,7 @@ async fn main() -> Result<(), Error> {
             let concordium_client = v2::Client::new(endpoint)
                 .await
                 .context("Unable to establish connection to the node.")?;
-            
+
             let mut deployer = Deployer::new(concordium_client, &key_file)?;
 
             // Checking that the module reference is different from the umbrella_feeds module reference registered in the registry
