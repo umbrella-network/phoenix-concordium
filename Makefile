@@ -1,5 +1,5 @@
 staking-bank-production: 
-	cd ./staking-bank; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out staking_bank.wasm.v1 -- --features production;
+	cd ./staking-bank; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.74.1 -e --out staking_bank.wasm.v1 -- --features production;
 
 staking-bank-development: 
 	cd ./staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features development;
@@ -10,8 +10,13 @@ staking-bank-sandbox:
 staking-bank-local: 
 	cd ./staking-bank; cargo concordium build -e --out staking_bank.wasm.v1 -- --features local;
 
+# oracle-integration-production can not be build in verifiable way
+# there is no way to easily add additional root folders into the docker image during the build.
+# One workaround would be to hardcode the type in the oracle-integration-production smart contract
+# so that we don't have these dependencies to other smart contracts
 oracle-integration-production: 
-	cd ./oracle-integration; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out oracle_integration.wasm.v1 -- --features production;
+	cd ./oracle-integration; cargo concordium build -e --out oracle_integration.wasm.v1 -- --features production;
+# 	cd ./oracle-integration; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.74.1 -e --out oracle_integration.wasm.v1 -- --features production;
 
 oracle-integration-development: 
 	cd ./oracle-integration; cargo concordium build -e --out oracle_integration.wasm.v1 -- --features development;
@@ -20,13 +25,13 @@ oracle-integration-local:
 	cd ./oracle-integration; cargo concordium build -e --out oracle_integration.wasm.v1 -- --features local;
 
 build-registry:
-	cd ./registry; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out registry.wasm.v1;
+	cd ./registry; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.74.1 -e --out registry.wasm.v1;
 
 build-umbrella_feeds:
-	cd ./umbrella-feeds; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out umbrella_feeds.wasm.v1;
+	cd ./umbrella-feeds; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.74.1 -e --out umbrella_feeds.wasm.v1;
 	
 build-dummy_contract:
-	cd ./dummy-contract; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.70.0 -e --out dummy_contract.wasm.v1;
+	cd ./dummy-contract; cargo concordium build --verifiable docker.io/concordium/verifiable-sc:1.74.1 -e --out dummy_contract.wasm.v1;
 
 build-all-production: build-registry build-umbrella_feeds build-dummy_contract staking-bank-production oracle-integration-production
 

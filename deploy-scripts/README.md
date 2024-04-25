@@ -44,6 +44,9 @@ note: for verifiable remove/comment out any `dev-dependencies` from `Cargo.toml`
 ```toml
 #[dev-dependencies.registry]
 #path = "../registry/"
+
+#[dev-dependencies.staking-bank]
+#path = "../staking-bank/"
 ```
 
 then: `make build-all-production`
