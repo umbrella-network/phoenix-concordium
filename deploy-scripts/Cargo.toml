@@ -10,8 +10,9 @@ anyhow = "1.0"
 chrono = "0.4.26"
 tokio = {version = "1.18", features = ["rt", "macros", "rt-multi-thread"] }
 clap = { version = "4", features = ["derive", "env"]}
-concordium-rust-sdk="3"
+concordium-rust-sdk="4.1"
 registry = {path = "../registry"}
 umbrella-feeds = {path = "../umbrella-feeds"}
 staking-bank = {path = "../staking-bank"}
 structopt = "0.3.26"
+tonic = {version = "0.10", features = ["tls", "tls-roots"]} # Use system trust roots.

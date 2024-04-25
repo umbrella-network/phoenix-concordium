@@ -19,6 +19,10 @@ https://developer.concordium.software/en/mainnet/smart-contracts/tutorials/setup
 1. https://rustup.rs/
 2. new way of install: `cargo install --locked cargo-concordium`
 
+## Update
+
+Enter directory eg `cd registry` and run `cargo update`
+
 # Compiling the contracts
 
 In each of the above contract folders, you can build the smart contract (with its embedded schema) with the following

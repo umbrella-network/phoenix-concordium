@@ -235,10 +235,22 @@ dependencies = [
 ]
 
 [[package]]
-name = "concordium-contracts-common-derive"
-version = "4.0.0"
+name = "concordium-contracts-common"
+version = "9.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ffcc34b050d8c0a86498854c190d5008bc3b4927ded1a9627f3fc1150c326e6"
+checksum = "14dfda3a8d06d2d72e74aad650757680a82df4e528c18c66c49efe9f60b646c5"
+dependencies = [
+ "base64",
+ "concordium-contracts-common-derive",
+ "fnv",
+ "hashbrown 0.11.2",
+]
+
+[[package]]
+name = "concordium-contracts-common-derive"
+version = "4.1.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee3482ffacf3c18133be976c1b874b6e87e018ac0316e9385888b43df07fa39c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -253,7 +265,7 @@ checksum = "49629e53591115f9e5e3669f671641ed09b7884a5f1e8ed97ccea2a03d095483"
 dependencies = [
  "anyhow",
  "byteorder",
- "concordium-contracts-common",
+ "concordium-contracts-common 8.0.0",
  "concordium-wasm",
  "derive_more",
  "ed25519-zebra",
@@ -287,11 +299,11 @@ dependencies = [
 
 [[package]]
 name = "concordium-std"
-version = "8.0.0"
+version = "9.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f097b16c01c9ec68b3bc10dd249a7b1751d83a17c16df5f49329cc0090fdb26"
+checksum = "228d64159b87f649881bc1c1b752842fae1f89f082481405b13e44ef687c174e"
 dependencies = [
- "concordium-contracts-common",
+ "concordium-contracts-common 9.1.0",
  "wee_alloc",
 ]
 
@@ -302,7 +314,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "5c3147903254a3c4862db6207bd8f1f43dcbec6c457cc0053940c42b452cc442"
 dependencies = [
  "anyhow",
- "concordium-contracts-common",
+ "concordium-contracts-common 8.0.0",
  "derive_more",
  "leb128",
  "num_enum",
@@ -318,7 +330,7 @@ dependencies = [
  "bs58",
  "byteorder",
  "chrono",
- "concordium-contracts-common",
+ "concordium-contracts-common 8.0.0",
  "concordium_base_derive",
  "curve25519-dalek",
  "derive_more",
@@ -1139,13 +1151,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "registry"
-version = "1.0.0"
-dependencies = [
- "concordium-std",
-]
-
-[[package]]
 name = "rend"
 version = "0.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1365,13 +1370,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "staking-bank"
-version = "1.0.0"
-dependencies = [
- "concordium-std",
-]
-
-[[package]]
 name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1512,8 +1510,6 @@ version = "1.0.0"
 dependencies = [
  "concordium-smart-contract-testing",
  "concordium-std",
- "registry",
- "staking-bank",
 ]
 
 [[package]]

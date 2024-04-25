@@ -22,9 +22,9 @@ checksum = "4785bdd1c96b2a846b2bd7cc02e86b6b3dbf14e7e53446c4f54c92a361040822"
 
 [[package]]
 name = "concordium-contracts-common"
-version = "8.0.0"
+version = "9.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d87e82f19b82f76e86e76a13efe05e520e593451122efed5599d085f92904f3a"
+checksum = "14dfda3a8d06d2d72e74aad650757680a82df4e528c18c66c49efe9f60b646c5"
 dependencies = [
  "base64",
  "concordium-contracts-common-derive",
@@ -34,9 +34,9 @@ dependencies = [
 
 [[package]]
 name = "concordium-contracts-common-derive"
-version = "4.0.0"
+version = "4.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "4ffcc34b050d8c0a86498854c190d5008bc3b4927ded1a9627f3fc1150c326e6"
+checksum = "ee3482ffacf3c18133be976c1b874b6e87e018ac0316e9385888b43df07fa39c"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -45,9 +45,9 @@ dependencies = [
 
 [[package]]
 name = "concordium-std"
-version = "8.0.0"
+version = "9.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "9f097b16c01c9ec68b3bc10dd249a7b1751d83a17c16df5f49329cc0090fdb26"
+checksum = "228d64159b87f649881bc1c1b752842fae1f89f082481405b13e44ef687c174e"
 dependencies = [
  "concordium-contracts-common",
  "wee_alloc",
