@@ -61,7 +61,10 @@ make build-all-sandbox
 Commit verifiable builds so the .tar fines were available from public URL.
 
 ```shell
-cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/6ba7ccd2d14b69b0f0d00ca483357b9ba108742d/registry/registry.wasm.v1.tar --verify
+cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/332195d4bd0f6c40668aed0ada36221890e2b3ca/registry/registry.wasm.v1.tar --verify
+cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/332195d4bd0f6c40668aed0ada36221890e2b3ca/staking-bank/staking_bank.wasm.v1.tar --verify
+cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/332195d4bd0f6c40668aed0ada36221890e2b3ca/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
+cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/332195d4bd0f6c40668aed0ada36221890e2b3ca/dummy-contract/dummy_contract.wasm.v1.tar --verify
 ```
 
 ### Deployment
@@ -71,7 +74,17 @@ command is shown below):
 
 ```
 cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --required_signatures 2 --decimals 8
-cargo run deploy --node http://node.concordium.com:20000 --account ./_keys/prod/UMB_ProductionDeployer.json --required_signatures 6 --decimals 8
+cargo run deploy --node https://grpc.mainnet.concordium.software:20000 --account ../UMB_ProductionDeployer.json --required_signatures 6 --decimals 8
+```
+
+### Verify
+
+```shell
+cargo concordium verify-build --module registry/registry.wasm.v1
+cargo concordium verify-build --module staking-bank/staking_bank.wasm.v1
+cargo concordium verify-build --module umbrella-feeds/umbrella_feeds.wasm.v1
+cargo concordium verify-build --module dummy-contract/dummy_contract.wasm.v1
+
 ```
 
 ## To register contracts in the `registry` contract:
@@ -83,6 +96,8 @@ Execute the register script in this folder (an example command is shown below):
 cargo run register --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7281,0>" --contract "<7373,0>" --contract "<7283,0>" 
 // SBX
 cargo run register --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7542,0>" --contract "<7543,0>" --contract "<7544,0>" 
+// PROD
+cargo run register --node https://grpc.mainnet.concordium.software:20000 --account ../UMB_ProductionDeployer.json --registry "<9457,0>" --contract "<9458,0>" --contract "<9459,0>" 
 ```
 
 ## To upgrade the `staking_bank` contract:
