@@ -18,7 +18,7 @@ sandbox = []
 local = []
 
 [dependencies]
-concordium-std = {version = "8.0", default-features = false}
+concordium-std = {version = "9.0", default-features = false}
 
 [dev-dependencies.registry]
 path = "../registry/"
