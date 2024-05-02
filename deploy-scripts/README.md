@@ -61,10 +61,10 @@ make build-all-sandbox
 Commit verifiable builds so the .tar fines were available from public URL.
 
 ```shell
-cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/332195d4bd0f6c40668aed0ada36221890e2b3ca/registry/registry.wasm.v1.tar --verify
-cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/332195d4bd0f6c40668aed0ada36221890e2b3ca/staking-bank/staking_bank.wasm.v1.tar --verify
-cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/332195d4bd0f6c40668aed0ada36221890e2b3ca/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
-cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/332195d4bd0f6c40668aed0ada36221890e2b3ca/dummy-contract/dummy_contract.wasm.v1.tar --verify
+cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/0871209d749e5995d42adec7fefd7de10ed5ae10/registry/registry.wasm.v1.tar --verify
+cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/0871209d749e5995d42adec7fefd7de10ed5ae10/staking-bank/staking_bank.wasm.v1.tar --verify
+cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/0871209d749e5995d42adec7fefd7de10ed5ae10/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
+cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/0871209d749e5995d42adec7fefd7de10ed5ae10/dummy-contract/dummy_contract.wasm.v1.tar --verify
 ```
 
 ### Deployment
@@ -73,8 +73,8 @@ Execute the deployment script in this folder to set up the protocol with the abo
 command is shown below):
 
 ```
-cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --required_signatures 2 --decimals 8
-cargo run deploy --node https://grpc.mainnet.concordium.software:20000 --account ../UMB_ProductionDeployer.json --required_signatures 6 --decimals 8
+cargo run deploy --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --required_signatures 2 --decimals 8
+cargo run deploy --node umb.concordium.com:20000 --account ../_keys/UMB_ProductionDeployer.json --required_signatures 6 --decimals 8
 ```
 
 ### Verify
@@ -84,20 +84,6 @@ cargo concordium verify-build --module registry/registry.wasm.v1
 cargo concordium verify-build --module staking-bank/staking_bank.wasm.v1
 cargo concordium verify-build --module umbrella-feeds/umbrella_feeds.wasm.v1
 cargo concordium verify-build --module dummy-contract/dummy_contract.wasm.v1
-
-```
-
-## To register contracts in the `registry` contract:
-
-Execute the register script in this folder (an example command is shown below):
-
-```shell
-//                                                                                                                                                                          bank,               feeds
-cargo run register --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7281,0>" --contract "<7373,0>" --contract "<7283,0>" 
-// SBX
-cargo run register --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7542,0>" --contract "<7543,0>" --contract "<7544,0>" 
-// PROD
-cargo run register --node https://grpc.mainnet.concordium.software:20000 --account ../UMB_ProductionDeployer.json --registry "<9457,0>" --contract "<9458,0>" --contract "<9459,0>" 
 ```
 
 ## To upgrade the `staking_bank` contract:
@@ -107,7 +93,10 @@ Compile a new `staking_bank` contract.
 Execute the upgrade script in this folder (an example command is shown below):
 
 ```
-cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7281,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
+cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8916,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
+cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8913,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
+
+cargo run upgrade_staking_bank_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 ```
 
 ## To upgrade the `umbrella_feeds` contract:
@@ -118,6 +107,8 @@ Execute the upgrade script in this folder (an example command is shown below):
 
 ```
 cargo run upgrade_umbrella_feeds_contract --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7281,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
+
+cargo run upgrade_umbrella_feeds_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
 ```
 
 Note: The `account` parameter should be a Concordium wallet account either exported from the
@@ -137,4 +128,17 @@ Transaction finalized: tx_hash=bdb43d1f00a4c5ba02ec81e0e2da52b6920582a16acd21a36
 Updating contract....
 Sent transaction with hash: 4843efc3b700bce8e67f2cc3f17da3124cf0a7323652fb778412ecd768ae2fe5
 Transaction finalized: tx_hash=4843efc3b700bce8e67f2cc3f17da3124cf0a7323652fb778412ecd768ae2fe5
+```
+
+## To register contracts in the `registry` contract:
+
+Execute the register script in this folder (an example command is shown below):
+
+```shell
+// DEV                                                                                                                                       bank,                feeds
+cargo run register --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8916,0>" --contract "<8917,0>" --contract "<8918,0>" 
+// SBX
+cargo run register --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8913,0>" --contract "<8914,0>" --contract "<8915,0>" 
+// PROD
+cargo run register --node <rpc> --account ../UMB_ProductionDeployer.json --registry "<9457,0>" --contract "<9469,0>" --contract "<9470,0>" 
 ```
