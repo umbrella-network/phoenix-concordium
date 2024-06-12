@@ -20,8 +20,8 @@ local = []
 [dependencies]
 concordium-std = {version = "9.0", default-features = false}
 
-[dev-dependencies.registry]
-path = "../registry/"
+#[dev-dependencies.registry]
+#path = "../registry/"
 
 [dev-dependencies]
 concordium-smart-contract-testing = "3.0"

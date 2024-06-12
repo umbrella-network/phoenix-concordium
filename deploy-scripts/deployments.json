@@ -1,17 +1,17 @@
 {
   "dev": {
-    "registry": "188279547a77e0a67091924077a495aaf52e798e12a0295622c0da6a30a6ab37@(7281, 0)",
-    "bank": "7aa4deb0b74e4c107ecbf8fc2addeb919a139926bc34e4833eebf729cdf4ecd7@(7373, 0)",
-    "feeds": "fb94b02c5c05caacba65d8197215b2a7c932af42dd6725d3e7f93486d49f8b62@(7283, 0)"
+    "registry": "8916,0",
+    "bank": "8917,0",
+    "feeds": "8918,0"
   },
   "sbx": {
-    "registry": "7542,0",
-    "bank": "7543,0",
-    "feeds": "7544,0"
+    "registry": "8913,0",
+    "bank": "8914,0",
+    "feeds": "8915,0"
   },
   "mainnet": {
     "registry": "9457,0",
-    "bank": "9458,0",
+    "bank": "9469,0",
     "feeds": "9459,0"
   }
 }
