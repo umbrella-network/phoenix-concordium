@@ -15,10 +15,13 @@ https://developer.concordium.software/en/mainnet/net/references/transactions.htm
 
 `concordium-client config show` this will show accounts + aliases
 
+to check balances:
 ```
-concordium-client account show UMB_Production --grpc-ip <url> --grpc-port 20000 --secure
-concordium-client account show 46eTEZwu45dFV2ByhWfDh2sNJg2hLHL6bPwaM398NAeJM7TG3L --grpc-ip concordium.prod.umb.network --grpc-port 20000 --secure
+concordium-client account show 46eTEZwu45dFV2ByhWfDh2sNJg2hLHL6bPwaM398NAeJM7TG3L --grpc-ip <url> --grpc-port 20000 --secure
 ```
+
+
+to transfer tokens:
 
 ```shell
 concordium-client transaction send \
