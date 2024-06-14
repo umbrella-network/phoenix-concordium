@@ -61,10 +61,10 @@ make build-all-sandbox
 Commit verifiable builds so the .tar fines were available from public URL.
 
 ```shell
-cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/0871209d749e5995d42adec7fefd7de10ed5ae10/registry/registry.wasm.v1.tar --verify
-cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/0871209d749e5995d42adec7fefd7de10ed5ae10/staking-bank/staking_bank.wasm.v1.tar --verify
-cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/0871209d749e5995d42adec7fefd7de10ed5ae10/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
-cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/0871209d749e5995d42adec7fefd7de10ed5ae10/dummy-contract/dummy_contract.wasm.v1.tar --verify
+cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/db58cccc2d530de18732d38d28f39241ce5490bd/registry/registry.wasm.v1.tar --verify
+cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/db58cccc2d530de18732d38d28f39241ce5490bd/staking-bank/staking_bank.wasm.v1.tar --verify
+cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/db58cccc2d530de18732d38d28f39241ce5490bd/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
+cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/db58cccc2d530de18732d38d28f39241ce5490bd/dummy-contract/dummy_contract.wasm.v1.tar --verify
 ```
 
 ### Deployment
@@ -92,11 +92,12 @@ Compile a new `staking_bank` contract.
 
 Execute the upgrade script in this folder (an example command is shown below):
 
-```
+```shell
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8916,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8913,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 
 cargo run upgrade_staking_bank_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
+# prod:
 ```
 
 ## To upgrade the `umbrella_feeds` contract:
