@@ -129,9 +129,9 @@ pub(crate) const VALIDATOR_18: PublicKeyEd25519 = PublicKeyEd25519([
 type StakingBalanceAmount = u8;
 
 /// The number of validators.
-pub(crate) const NUMBER_OF_VALIDATORS: u8 = 13; // update-count
+pub(crate) const NUMBER_OF_VALIDATORS: u8 = 13; // #update-count
 /// total supply = number_of_validators * ONE.
-pub(crate) const TOTAL_SUPPLY: StakingBalanceAmount = 13 * 1u8; // update-count
+pub(crate) const TOTAL_SUPPLY: StakingBalanceAmount = 13 * 1u8; // #update-count
 
 /// Internal function that returns a boolean if the given public key is a validator.
 pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {
@@ -139,7 +139,8 @@ pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {
 }
 
 /// Internal function that returns all validators.
-pub(crate) fn public_keys() -> [PublicKeyEd25519; 13] { // update-count
+/// #update-count
+pub(crate) fn public_keys() -> [PublicKeyEd25519; 13] {
     [
         VALIDATOR_0,
         VALIDATOR_1,
@@ -201,6 +202,7 @@ pub(crate) fn validators<S: HasStateApi>(
 }
 
 /// View function that returns all validators' public keys.
+/// #update-count in method and in decorator
 #[receive(
     contract = "staking_bank",
     name = "getPublicKeys",
@@ -209,6 +211,6 @@ pub(crate) fn validators<S: HasStateApi>(
 pub(crate) fn get_public_keys<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<[PublicKeyEd25519; 13]> { // update-count and in decorator!
+) -> ReceiveResult<[PublicKeyEd25519; 13]> {
     Ok(public_keys())
 }
