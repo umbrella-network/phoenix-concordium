@@ -58,14 +58,18 @@ pub(crate) const VALIDATOR_6: PublicKeyEd25519 = PublicKeyEd25519([
 // ]);
 
 // https://umbrella.validator.infstones.io: 4neQ1FMr4EZowt3jfPQQTTY2UUHmg6rvsRqjwdLDAAT34d7ajR
-// pub(crate) const VALIDATOR_8: PublicKeyEd25519 = PublicKeyEd25519([
-//     // Buffer.from('', 'hex').toJSON().data
-// ]);
+pub(crate) const VALIDATOR_8: PublicKeyEd25519 = PublicKeyEd25519([
+    // Buffer.from('71192110f0fe4b179174bd1b6ebf61ac9e38c75b969970d3bca5836cde02f729', 'hex').toJSON().data
+    113, 25, 33, 16, 240, 254, 75, 23, 145, 116, 189, 27, 110, 191, 97, 172, 158, 56, 199, 91, 150,
+    153, 112, 211, 188, 165, 131, 108, 222, 2, 247, 41,
+]);
 
 // https://umb.hashquark.io: 31wMWQJpoL1TinXZDUTkwvXGF1ptqvXAqjSV4jjnNrEUiw5Y36
-// pub(crate) const VALIDATOR_9: PublicKeyEd25519 = PublicKeyEd25519([
-//     // Buffer.from('', 'hex').toJSON().data
-// ]);
+pub(crate) const VALIDATOR_9: PublicKeyEd25519 = PublicKeyEd25519([
+    // Buffer.from('b2c969aa57cfc873aadd7b89436f69cee0131adf30f5afa968388e4f6cbf93d1', 'hex').toJSON().data
+    178, 201, 105, 170, 87, 207, 200, 115, 170, 221, 123, 137, 67, 111, 105, 206, 224, 19, 26, 223,
+    48, 245, 175, 169, 104, 56, 142, 79, 108, 191, 147, 209,
+]);
 
 // http://umbrella.staking4all.org:3000: 4T3tGmdHgBCkDqLfTjgkPYLWYMKQ1AWRyxemD4LwoPKDQ77eRm
 // pub(crate) const VALIDATOR_10: PublicKeyEd25519 = PublicKeyEd25519([
@@ -97,9 +101,11 @@ pub(crate) const VALIDATOR_12: PublicKeyEd25519 = PublicKeyEd25519([
 // ]);
 
 // https://rpc.urbanhq.net: 3QBZ4utQAthJAAvBi5ezEn47yyn4EvDnP4qW9km4Jh6PSSDvBw
-// pub(crate) const VALIDATOR_15: PublicKeyEd25519 = PublicKeyEd25519([
-//     // Buffer.from('', 'hex').toJSON().data
-// ]);
+pub(crate) const VALIDATOR_15: PublicKeyEd25519 = PublicKeyEd25519([
+    // Buffer.from('13496eb6bdd6e5c4952a8807d2940c4c95f107fd8141de4afbd473d600003c9a', 'hex').toJSON().data
+    19, 73, 110, 182, 189, 214, 229, 196, 149, 42, 136, 7, 210, 148, 12, 76, 149, 241, 7, 253, 129,
+    65, 222, 74, 251, 212, 115, 214, 0, 0, 60, 154,
+]);
 
 // https://umbrella-node.ankastake.com: 4YAsJrF8Lx3uYyY27pKVGHSWeYtiqoJLonkKdnE7i6n13ekuek
 pub(crate) const VALIDATOR_16: PublicKeyEd25519 = PublicKeyEd25519([
@@ -123,9 +129,9 @@ pub(crate) const VALIDATOR_18: PublicKeyEd25519 = PublicKeyEd25519([
 type StakingBalanceAmount = u8;
 
 /// The number of validators.
-pub(crate) const NUMBER_OF_VALIDATORS: u8 = 10;
+pub(crate) const NUMBER_OF_VALIDATORS: u8 = 13; // #update-count
 /// total supply = number_of_validators * ONE.
-pub(crate) const TOTAL_SUPPLY: StakingBalanceAmount = 4 * 1u8;
+pub(crate) const TOTAL_SUPPLY: StakingBalanceAmount = 13 * 1u8; // #update-count
 
 /// Internal function that returns a boolean if the given public key is a validator.
 pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {
@@ -133,7 +139,8 @@ pub(crate) fn is_validator(validator: PublicKeyEd25519) -> bool {
 }
 
 /// Internal function that returns all validators.
-pub(crate) fn public_keys() -> [PublicKeyEd25519; 10] {
+/// #update-count
+pub(crate) fn public_keys() -> [PublicKeyEd25519; 13] {
     [
         VALIDATOR_0,
         VALIDATOR_1,
@@ -143,14 +150,14 @@ pub(crate) fn public_keys() -> [PublicKeyEd25519; 10] {
         VALIDATOR_5,
         VALIDATOR_6,
         // VALIDATOR_7,
-        // VALIDATOR_8,
-        // VALIDATOR_9,
+        VALIDATOR_8,
+        VALIDATOR_9,
         // VALIDATOR_10,
         VALIDATOR_11,
         VALIDATOR_12,
         // VALIDATOR_13,
         // VALIDATOR_14,
-        // VALIDATOR_15,
+        VALIDATOR_15,
         VALIDATOR_16,
         // VALIDATOR_17,
         VALIDATOR_18,
@@ -179,14 +186,14 @@ pub(crate) fn validators<S: HasStateApi>(
         VALIDATOR_5 => Ok((id, "https://umbrella.crazywhale.es".to_string())),
         VALIDATOR_6 => Ok((id, "https://umbrella-node.gateomega.com".to_string())),
         // VALIDATOR_7 => Ok((id, "https://umb.anorak.technology".to_string())),
-        // VALIDATOR_8 => Ok((id, "https://umbrella.validator.infstones.io".to_string())),
-        // VALIDATOR_9 => Ok((id, "https://umb.hashquark.io".to_string())),
+        VALIDATOR_8 => Ok((id, "https://umbrella.validator.infstones.io".to_string())),
+        VALIDATOR_9 => Ok((id, "https://umb.hashquark.io".to_string())),
         // VALIDATOR_10 => Ok((id, "http://umbrella.staking4all.org:3000".to_string())),
         VALIDATOR_11 => Ok((id, "https://umbrella-api.validatrium.club".to_string())),
         VALIDATOR_12 => Ok((id, "http://5.161.78.230:3000".to_string())),
         // VALIDATOR_3 => Ok((id, "https://umbnode.blockchainliverpool.com".to_string())),
         // VALIDATOR_14 => Ok((id, "https://umb-api.staking.rocks".to_string())),
-        // VALIDATOR_15 => Ok((id, "https://rpc.urbanhq.net".to_string())),
+        VALIDATOR_15 => Ok((id, "https://rpc.urbanhq.net".to_string())),
         VALIDATOR_16 => Ok((id, "https://umbrella-node.ankastake.com".to_string())),
         // VALIDATOR_17 => Ok((id, "https://umbrella.tchambrella.com".to_string())),
         VALIDATOR_18 => Ok((id, "https://umbrella-node.cmt13.eu".to_string())),
@@ -195,14 +202,15 @@ pub(crate) fn validators<S: HasStateApi>(
 }
 
 /// View function that returns all validators' public keys.
+/// #update-count in method and in decorator
 #[receive(
     contract = "staking_bank",
     name = "getPublicKeys",
-    return_value = "[PublicKeyEd25519;10]"
+    return_value = "[PublicKeyEd25519;13]"
 )]
 pub(crate) fn get_public_keys<S: HasStateApi>(
     _ctx: &impl HasReceiveContext,
     _host: &impl HasHost<State, StateApiType = S>,
-) -> ReceiveResult<[PublicKeyEd25519; 10]> {
+) -> ReceiveResult<[PublicKeyEd25519; 13]> {
     Ok(public_keys())
 }
