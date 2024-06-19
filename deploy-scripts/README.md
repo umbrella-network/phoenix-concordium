@@ -88,6 +88,8 @@ cargo concordium verify-build --module dummy-contract/dummy_contract.wasm.v1
 
 ## To upgrade the `staking_bank` contract:
 
+Note: **REMEMBER TO UPDATE UMBRELLA FEEDS CONTRACT**! so UmbrellaFeeds can know new staking bank address
+
 Compile a new `staking_bank` contract.
 
 Execute the upgrade script in this folder (an example command is shown below):
@@ -96,8 +98,10 @@ Execute the upgrade script in this folder (an example command is shown below):
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8916,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8913,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 
-cargo run upgrade_staking_bank_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 # prod:
+cargo run upgrade_staking_bank_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
+
+# REMEMBER TO UPDATE FEEDS! so UmbrellaFeeds can know new staking bank address
 ```
 
 ## To upgrade the `umbrella_feeds` contract:
@@ -106,9 +110,10 @@ Compile a new `umbrella_feeds` contract.
 
 Execute the upgrade script in this folder (an example command is shown below):
 
-```
+```shell
 cargo run upgrade_umbrella_feeds_contract --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7281,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
 
+# prod:
 cargo run upgrade_umbrella_feeds_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
 ```
 
