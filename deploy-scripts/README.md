@@ -61,10 +61,10 @@ make build-all-sandbox
 Commit verifiable builds so the .tar fines were available from public URL.
 
 ```shell
-cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/db58cccc2d530de18732d38d28f39241ce5490bd/registry/registry.wasm.v1.tar --verify
-cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/db58cccc2d530de18732d38d28f39241ce5490bd/staking-bank/staking_bank.wasm.v1.tar --verify
-cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/db58cccc2d530de18732d38d28f39241ce5490bd/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
-cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/db58cccc2d530de18732d38d28f39241ce5490bd/dummy-contract/dummy_contract.wasm.v1.tar --verify
+cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/810f6eac7a8c7d9ad9312821fdb734b22b2823d7/registry/registry.wasm.v1.tar --verify
+cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/810f6eac7a8c7d9ad9312821fdb734b22b2823d7/staking-bank/staking_bank.wasm.v1.tar --verify
+cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/810f6eac7a8c7d9ad9312821fdb734b22b2823d7/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
+cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/810f6eac7a8c7d9ad9312821fdb734b22b2823d7/dummy-contract/dummy_contract.wasm.v1.tar --verify
 ```
 
 ### Deployment
@@ -88,16 +88,22 @@ cargo concordium verify-build --module dummy-contract/dummy_contract.wasm.v1
 
 ## To upgrade the `staking_bank` contract:
 
-Compile a new `staking_bank` contract.
+Note: **REMEMBER TO UPDATE UMBRELLA FEEDS CONTRACT**! so UmbrellaFeeds can know new staking bank address
+
+Compile a new `staking_bank` contract (If verifiable build are generated, no need to compile again).
 
 Execute the upgrade script in this folder (an example command is shown below):
+
+`cd deploy_scripts`
 
 ```shell
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8916,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 cargo run upgrade_staking_bank_contract --node http://node.testnet.concordium.com:20000 --account ./UMB_testnetDeployer.export --registry "<8913,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 
-cargo run upgrade_staking_bank_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
 # prod:
+cargo run upgrade_staking_bank_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_staking_bank ../staking-bank/staking_bank.wasm.v1
+
+# REMEMBER TO UPDATE FEEDS! so UmbrellaFeeds can know new staking bank address
 ```
 
 ## To upgrade the `umbrella_feeds` contract:
@@ -106,9 +112,10 @@ Compile a new `umbrella_feeds` contract.
 
 Execute the upgrade script in this folder (an example command is shown below):
 
-```
+```shell
 cargo run upgrade_umbrella_feeds_contract --node http://node.testnet.concordium.com:20000 --account ./4Uuaaz27ahqQ7Nc6DYQUxW5bmJqFMDjorGtZkfXMfpkawHJVgy.export --registry "<7281,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
 
+# prod:
 cargo run upgrade_umbrella_feeds_contract --node http://concordium.umb.network:20000 --account ../_keys/prod/UMB_ProductionDeployer.json --registry "<9457,0>" --new_umbrella_feeds ../umbrella-feeds/umbrella_feeds.wasm.v1
 ```
 
