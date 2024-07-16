@@ -15,7 +15,8 @@ To translate verifyKey to numbers:
 2. update constants with keys in `staking-bank/src/production_constants.rs`
 3. make sure number of validators matches new count, there are few places where update needs to be done, search
    for `#update-count`
-4. create verifiable build (it will review closing PR with changes), see deployments README for next steps.
+4. merge PR
+5. create verifiable build (it will require closing PR with changes), see deployments README for next steps.
 
 ### Sending founds using concordium-client
 
