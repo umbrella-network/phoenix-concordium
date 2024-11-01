@@ -6,8 +6,10 @@ The format is based on [Keep a Changelog](http://keepachangelog.com/en/1.0.0/)
 and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.html).
 
 ## Unreleased
+
+## [0.5.0] - 2024-11-01
 ### Updated
-- deploy bank with 17 production validators
+- deploy bank with 15 production validators
 
 ## [0.4.0] - 2024-07-16
 ### Updated
