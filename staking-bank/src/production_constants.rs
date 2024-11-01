@@ -85,8 +85,8 @@ pub(crate) const VALIDATOR_10: PublicKeyEd25519 = PublicKeyEd25519([
 // http://5.161.78.230:3000: 3JN1nQhPtot87DxHpLMC6MxXdu5emb6SKEKikHErQx3aQcJp6V
 pub(crate) const VALIDATOR_11: PublicKeyEd25519 = PublicKeyEd25519([
     // Buffer.from('512e9f39e027f3ee53aa35b9bc2c8dfc03e6ce34e0fea9606d0cbf4d0506b1aa', 'hex').toJSON().data
-    252, 160, 65, 81, 46, 159, 57, 224, 39, 243, 238, 83, 170, 53, 185, 188, 44, 141, 252, 3, 230,
-    206, 52, 224, 254, 169, 96, 109, 12, 191, 77, 5, 6, 177, 170,
+    81, 46, 159, 57, 224, 39, 243, 238, 83, 170, 53, 185, 188, 44, 141, 252, 3, 230, 206, 52, 224,
+    254, 169, 96, 109, 12, 191, 77, 5, 6, 177, 170,
 ]);
 
 // https://rpc.urbanhq.net: 3QBZ4utQAthJAAvBi5ezEn47yyn4EvDnP4qW9km4Jh6PSSDvBw
