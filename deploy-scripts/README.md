@@ -61,10 +61,10 @@ make build-all-sandbox
 Commit verifiable builds so the .tar fines were available from public URL.
 
 ```shell
-cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/02c391bfd3479cd8217dcbc57e2818f23c257b01/registry/registry.wasm.v1.tar --verify
-cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/02c391bfd3479cd8217dcbc57e2818f23c257b01/staking-bank/staking_bank.wasm.v1.tar --verify
-cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/02c391bfd3479cd8217dcbc57e2818f23c257b01/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
-cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/02c391bfd3479cd8217dcbc57e2818f23c257b01/dummy-contract/dummy_contract.wasm.v1.tar --verify
+cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/f867e90c967412911daafcf67dfeb39bf7838767/registry/registry.wasm.v1.tar --verify
+cargo concordium edit-build-info --module staking-bank/staking_bank.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/f867e90c967412911daafcf67dfeb39bf7838767/staking-bank/staking_bank.wasm.v1.tar --verify
+cargo concordium edit-build-info --module umbrella-feeds/umbrella_feeds.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/f867e90c967412911daafcf67dfeb39bf7838767/umbrella-feeds/umbrella_feeds.wasm.v1.tar --verify
+cargo concordium edit-build-info --module dummy-contract/dummy_contract.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/f867e90c967412911daafcf67dfeb39bf7838767/dummy-contract/dummy_contract.wasm.v1.tar --verify
 ```
 
 ### Deployment
