@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](http://semver.org/spec/v2.0.0.
 
 ## Unreleased
 
+## [0.5.0] - 2025-02-06
+### Updated
+- update validator url
+
 ## [0.5.0] - 2024-11-01
 ### Updated
 - deploy bank with 15 production validators
