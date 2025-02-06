@@ -170,7 +170,7 @@ pub(crate) fn validators<S: HasStateApi>(
         VALIDATOR_9 => Ok((id, "http://umbrella.staking4all.org:3000".to_string())),
         VALIDATOR_10 => Ok((id, "http://5.161.78.230:3000".to_string())),
         VALIDATOR_11 => Ok((id, "https://umb-api.staking.rocks".to_string())),
-        VALIDATOR_12 => Ok((id, "https://rpc.urbanhq.net".to_string())),
+        VALIDATOR_12 => Ok((id, "https://umb.urbanremote.net".to_string())),
         VALIDATOR_13 => Ok((id, "https://umbrella-node.ankastake.com".to_string())),
         VALIDATOR_14 => Ok((id, "https://umbrella.tchambrella.com".to_string())),
         _ => bail!(CustomContractError::NotValidator.into()),
