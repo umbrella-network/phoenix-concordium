@@ -58,7 +58,7 @@ make build-all-sandbox
 
 ### Verification
 
-Commit verifiable builds so the .tar fines were available from public URL.
+Commit verifiable builds so the .tar files were available from public URL.
 
 ```shell
 cargo concordium edit-build-info --module registry/registry.wasm.v1 --source-link https://github.com/umbrella-network/phoenix-concordium/raw/f867e90c967412911daafcf67dfeb39bf7838767/registry/registry.wasm.v1.tar --verify
